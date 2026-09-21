@@ -46,7 +46,7 @@
 
         <v-divider class="my-1"></v-divider>
 
-        <v-list-item @click="logout" prepend-icon="mdi-logout" rounded="md" class="menu-item text-error">
+        <v-list-item @click="handleLogout" prepend-icon="mdi-logout" rounded="md" class="menu-item text-error">
           <v-list-item-title class="text-body-2 font-weight-medium">Cerrar Sesión</v-list-item-title>
         </v-list-item>
       </v-list>
@@ -55,21 +55,50 @@
 </template>
 
 <script>
+import { mapState, mapActions } from 'pinia';
+import { useAuthStore } from '@/store/auth';
+
 export default {
   name: 'AppNavbar',
   emits: ['toggle-drawer'],
-  data() {
-    return {
-      userName: 'Administrador Ópalo',
-      userRole: 'Administración',
-      userPhoto: null,
-      initials: 'AÓ',
-    };
+  computed: {
+    ...mapState(useAuthStore, ['user']),
+
+    userName() {
+      return this.user?.name || 'Administrador Ópalo';
+    },
+
+    userRole() {
+      return this.user?.role?.description || this.user?.role?.name || 'Administración';
+    },
+
+    userPhoto() {
+      return this.user?.photo_url || null;
+    },
+
+    initials() {
+      if (!this.user?.name) return 'AÓ';
+      const parts = this.user.name.trim().split(' ');
+      return parts.length > 1
+        ? `${parts[0][0]}${parts[1][0]}`.toUpperCase()
+        : parts[0].substring(0, 2).toUpperCase();
+    },
   },
   methods: {
-    logout() {
-      localStorage.removeItem('token');
-      this.$router.push('/login');
+    ...mapActions(useAuthStore, ['logout']),
+
+    async handleLogout() {
+      try {
+        if (typeof this.logout === 'function') {
+          await this.logout();
+        }
+      } catch (e) {
+        console.error('Error al cerrar sesión:', e);
+      } finally {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        this.$router.push({ name: 'Login' });
+      }
     },
   },
 };

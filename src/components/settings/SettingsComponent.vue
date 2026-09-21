@@ -8,7 +8,9 @@
             <v-icon icon="mdi-tune" color="#ffffff" size="20" class="mr-3"></v-icon>
             <div>
               <div class="subtitle-1 font-weight-bold text-white">Ajustes del Sistema</div>
-              <div class="caption text-white opacity-80">Preferencias de cuenta, seguridad y configuración bancaria</div>
+              <div class="caption text-white opacity-80">
+                {{ isAdmin ? 'Configuración global y preferencias de cuenta' : 'Preferencias personales de cuenta' }}
+              </div>
             </div>
           </v-card-title>
 
@@ -16,7 +18,7 @@
           <v-card-text class="pa-4">
             <v-expansion-panels v-model="activePanels" variant="separated" class="custom-panels">
 
-              <!-- 1. Foto de Perfil -->
+              <!-- 1. Foto de Perfil (VISIBLE PARA TODOS) -->
               <v-expansion-panel rounded="lg" class="border-panel mb-3">
                 <v-expansion-panel-title class="opaloBrand white--text py-2 px-4">
                   <div class="d-flex align-center">
@@ -29,7 +31,7 @@
                 </v-expansion-panel-text>
               </v-expansion-panel>
 
-              <!-- 2. Cambio de Contraseña -->
+              <!-- 2. Cambio de Contraseña (VISIBLE PARA TODOS) -->
               <v-expansion-panel rounded="lg" class="border-panel mb-3">
                 <v-expansion-panel-title class="opaloBrand white--text py-2 px-4">
                   <div class="d-flex align-center">
@@ -42,8 +44,8 @@
                 </v-expansion-panel-text>
               </v-expansion-panel>
 
-              <!-- 3. Configuración de Cuenta Bancaria / CLABE -->
-              <v-expansion-panel rounded="lg" class="border-panel mb-3">
+              <!-- 3. Configuración Bancaria / CLABE (SOLO ADMIN) -->
+              <v-expansion-panel v-if="isAdmin" rounded="lg" class="border-panel mb-3">
                 <v-expansion-panel-title class="opaloBrand white--text py-2 px-4">
                   <div class="d-flex align-center">
                     <v-icon icon="mdi-bank-outline" size="18" class="mr-2 text-white"></v-icon>
@@ -64,6 +66,8 @@
 </template>
 
 <script>
+import { mapState } from 'pinia';
+import { useAuthStore } from '@/store/auth';
 import UserProfilePhotoComponent from '@/components/settings/UserProfilePhotoComponent.vue';
 import ChangePasswordComponent from '@/components/settings/ChangePasswordComponent.vue';
 import BankPaymentSettingsComponent from '@/components/settings/BankPaymentSettingsComponent.vue';
@@ -77,8 +81,12 @@ export default {
   },
   data() {
     return {
-      activePanels: [0], // Abre por defecto el panel de Foto
+      activePanels: [0],
     };
+  },
+  computed: {
+    // Leemos directamente el getter de useAuthStore
+    ...mapState(useAuthStore, ['isAdmin', 'user']),
   },
 };
 </script>

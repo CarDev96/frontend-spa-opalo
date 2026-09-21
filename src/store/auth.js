@@ -10,6 +10,38 @@ export const useAuthStore = defineStore('auth', {
 
   getters: {
     isAuthenticated: (state) => !!state.token,
+
+    /**
+     * Resuelve el nombre del rol ya sea que venga como string o como objeto de relación
+     */
+    userRole: (state) => {
+      if (!state.user) return null;
+      if (typeof state.user.role === 'string') return state.user.role;
+      return state.user.role?.name || null;
+    },
+
+    /**
+     * Valida si el usuario logueado tiene permisos de Administrador
+     */
+    isAdmin: (state) => {
+      if (!state.user) return false;
+      const role = typeof state.user.role === 'string'
+        ? state.user.role
+        : state.user.role?.name;
+
+      return role === 'admin' || role === 'administrator';
+    },
+
+    /**
+     * Valida si es personal operativo interno
+     */
+    isStaff: (state) => {
+      if (!state.user) return false;
+      const role = typeof state.user.role === 'string'
+        ? state.user.role
+        : state.user.role?.name;
+      return ['admin', 'psychologist', 'social_work', 'sales'].includes(role);
+    },
   },
 
   actions: {
