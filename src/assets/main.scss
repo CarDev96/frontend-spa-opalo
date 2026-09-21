@@ -1,0 +1,14 @@
+@use "./variables.scss" as *;
+
+.opaloBrand {
+  background-color: #07254A !important;
+  color: #ffffff !important;
+}
+.subtitle-2{
+	font-family: $body-font-family !important;
+}
+/* Equivalente a white--text de Vuetify 2 para Vuetify 3 */
+.white--text {
+  color: #ffffff !important;
+}
+
