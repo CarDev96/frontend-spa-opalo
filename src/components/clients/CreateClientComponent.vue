@@ -1,335 +1,378 @@
 <template>
-	<v-card flat class="client-card mb-6">
-		<!-- Cabecera Responsive con Botón Limpiar en Blanco -->
-		<div class="card-top-bar px-4 px-sm-6 py-4 d-flex flex-wrap align-center justify-space-between gap-2">
-			<div class="d-flex align-center header-left-box">
-				<!-- flex-shrink-0 evita que el icono se deforme o se corte en pantallas chicas -->
-				<div class="header-icon-box flex-shrink-0 mr-3">
-					<v-icon icon="mdi-domain-plus" color="#ffffff" size="20"></v-icon>
-				</div>
-				<div class="header-text-container">
-					<h2 class="card-title text-white mb-0">Alta de Empresa Cliente</h2>
-					<span class="card-subtitle text-white opacity-80 d-block text-truncate">
-						Completa la información fiscal y los datos de contacto
-					</span>
-				</div>
-			</div>
+  <v-card flat class="client-reg-card elevation-0">
+    <!-- Header Corporativo Ópalo -->
+    <div class="card-table-header px-6 py-4 d-flex align-center justify-space-between flex-wrap gap-2">
+      <div class="d-flex align-center">
+        <div class="header-icon-box mr-3 flex-shrink-0">
+          <v-icon icon="mdi-domain-plus" color="#ffffff" size="20"></v-icon>
+        </div>
+        <div>
+          <h2 class="card-title text-white mb-0">Alta de Empresa Cliente</h2>
+          <span class="card-subtitle text-white opacity-80">
+            Registra una nueva razón social para solicitud de evaluaciones de confianza
+          </span>
+        </div>
+      </div>
+      <v-chip color="rgba(255,255,255,0.15)" text-color="#ffffff" size="small" class="font-weight-bold text-white">
+        <v-icon icon="mdi-shield-check-outline" start size="14"></v-icon>
+        Credenciales Automatizadas
+      </v-chip>
+    </div>
 
-			<!-- Botón Limpiar estilizado en blanco sólido -->
-			<v-btn variant="flat" size="small" color="#ffffff" prepend-icon="mdi-broom"
-				class="text-none clear-btn-white font-weight-bold" @click="resetForm">
-				Limpiar
-			</v-btn>
-		</div>
+    <!-- Formulario Modular -->
+    <v-card-text class="pa-6 bg-slate-50">
+      <v-form ref="form" v-model="valid" @submit.prevent="submit">
+        <v-row dense>
+          <!-- BLOQUE 1: IDENTIDAD FISCAL Y COMERCIAL -->
+          <v-col cols="12" class="mb-2">
+            <div class="section-indicator d-flex align-center mb-3">
+              <span class="step-badge mr-2">1</span>
+              <span class="step-title">Datos Fiscales y Comerciales</span>
+            </div>
+            <v-card flat class="inner-step-card pa-4">
+              <v-row dense>
+                <!-- Razón Social -->
+                <v-col cols="12" md="6" class="px-2 mb-2">
+                  <label class="field-label">Razón Social *</label>
+                  <v-text-field
+                    v-model="f.company_name"
+                    placeholder="Ej. Logística y Transportes del Norte S.A. de C.V."
+                    prepend-inner-icon="mdi-domain"
+                    density="compact"
+                    variant="outlined"
+                    rounded="lg"
+                    color="#07254A"
+                    :rules="[r.required]"
+                    class="custom-field bg-white"
+                  ></v-text-field>
+                </v-col>
 
-		<!-- Contenido del Formulario -->
-		<v-card-text class="pa-4 pa-sm-6 pa-md-8">
-			<v-form ref="form" @submit.prevent="submitClient">
+                <!-- Nombre Comercial -->
+                <v-col cols="12" md="6" class="px-2 mb-2">
+                  <label class="field-label">Nombre Comercial / Corto *</label>
+                  <v-text-field
+                    v-model="f.trade_name"
+                    placeholder="Ej. TransNorte"
+                    prepend-inner-icon="mdi-tag-outline"
+                    density="compact"
+                    variant="outlined"
+                    rounded="lg"
+                    color="#07254A"
+                    :rules="[r.required]"
+                    class="custom-field bg-white"
+                  ></v-text-field>
+                </v-col>
 
-				<!-- Sección 1: Datos Fiscales -->
-				<div class="section-indicator mb-4">
-					<span class="step-circle">1</span>
-					<span class="step-label">Datos Fiscales y Comerciales</span>
-				</div>
+                <!-- RFC -->
+                <v-col cols="12" md="4" class="px-2 mb-2">
+                  <label class="field-label">RFC (con Homoclave) *</label>
+                  <v-text-field
+                    v-model="f.rfc"
+                    placeholder="Ej. LTN180512AB3"
+                    prepend-inner-icon="mdi-card-account-details-outline"
+                    density="compact"
+                    variant="outlined"
+                    rounded="lg"
+                    color="#07254A"
+                    :rules="[r.required, r.rfc]"
+                    class="custom-field bg-white uppercase-input"
+                    @input="f.rfc = f.rfc ? f.rfc.toUpperCase() : ''"
+                  ></v-text-field>
+                </v-col>
 
-				<v-row dense class="mb-4">
-					<v-col cols="12" md="7">
-						<div class="input-label">Razón Social <span class="required">*</span></div>
-						<v-text-field v-model="f.company_name" placeholder="Ej. Logística y Transportes del Norte S.A. de C.V."
-							:rules="[v => !!v || 'La razón social es obligatoria']" variant="outlined" density="comfortable"
-							prepend-inner-icon="mdi-office-building-outline" color="#07254A" class="enterprise-field"></v-text-field>
-					</v-col>
+                <!-- Régimen Fiscal -->
+                <v-col cols="12" md="5" class="px-2 mb-2">
+                  <label class="field-label">Régimen Fiscal *</label>
+                  <v-select
+                    v-model="f.fiscal_regime"
+                    :items="fiscalRegimeOptions"
+                    item-title="title"
+                    item-value="value"
+                    placeholder="Selecciona régimen..."
+                    prepend-inner-icon="mdi-file-certificate-outline"
+                    density="compact"
+                    variant="outlined"
+                    rounded="lg"
+                    color="#07254A"
+                    :rules="[r.required]"
+                    class="custom-field bg-white"
+                  ></v-select>
+                </v-col>
 
-					<v-col cols="12" md="5">
-						<div class="input-label">Nombre Comercial</div>
-						<v-text-field v-model="f.trade_name" placeholder="Ej. TransNorte" variant="outlined" density="comfortable"
-							:rules="[v => !!v || 'El nombre comercial es obligatorio']" prepend-inner-icon="mdi-storefront-outline" color="#07254A" class="enterprise-field"></v-text-field>
-					</v-col>
+                <!-- Código Postal Fiscal -->
+                <v-col cols="12" md="3" class="px-2 mb-2">
+                  <label class="field-label">C.P. Fiscal *</label>
+                  <v-text-field
+                    v-model="f.fiscal_zip_code"
+                    placeholder="Ej. 45100"
+                    prepend-inner-icon="mdi-map-marker-outline"
+                    density="compact"
+                    variant="outlined"
+                    rounded="lg"
+                    color="#07254A"
+                    maxlength="5"
+                    :rules="[r.required, r.zipCode]"
+                    class="custom-field bg-white"
+                  ></v-text-field>
+                </v-col>
+              </v-row>
+            </v-card>
+          </v-col>
 
-					<v-col cols="12" sm="6" md="4">
-						<div class="input-label">RFC <span class="required">*</span></div>
-						<v-text-field v-model="f.rfc" placeholder="LTN180512AB3" :rules="[v => !!v || 'El RFC es obligatorio']"
-							variant="outlined" density="comfortable" prepend-inner-icon="mdi-card-account-details-outline"
-							color="#07254A" maxlength="13" class="enterprise-field"></v-text-field>
-					</v-col>
+          <!-- BLOQUE 2: ENLACE DE RECURSOS HUMANOS / CONTACTO -->
+          <v-col cols="12" class="mb-2">
+            <div class="section-indicator d-flex align-center mb-3">
+              <span class="step-badge mr-2">2</span>
+              <span class="step-title">Contacto y Acceso al Portal</span>
+            </div>
+            <v-card flat class="inner-step-card pa-4">
+              <v-row dense>
+                <!-- Correo de Acceso -->
+                <v-col cols="12" md="6" class="px-2 mb-2">
+                  <label class="field-label">Correo Electrónico (Usuario del Portal) *</label>
+                  <v-text-field
+                    v-model="f.contact_email"
+                    placeholder="Ej. rh@transnorte.com"
+                    prepend-inner-icon="mdi-email-outline"
+                    density="compact"
+                    variant="outlined"
+                    rounded="lg"
+                    color="#07254A"
+                    :rules="[r.required, r.email]"
+                    class="custom-field bg-white"
+                  ></v-text-field>
+                </v-col>
 
-					<!-- RÉGIMEN FISCAL COMO V-SELECT -->
-					<v-col cols="12" sm="6" md="5">
-						<div class="input-label">Régimen Fiscal</div>
-						<v-select v-model="f.fiscal_regime" :items="fiscalRegimes" item-title="label" item-value="value"
-							placeholder="Seleccionar régimen..." variant="outlined" density="comfortable"
-							prepend-inner-icon="mdi-file-document-outline" color="#07254A" class="enterprise-field"
-							no-data-text="No se encontraron regímenes"></v-select>
-					</v-col>
+                <!-- Teléfono -->
+                <v-col cols="12" md="6" class="px-2 mb-2">
+                  <label class="field-label">Teléfono de Contacto (10 Dígitos) *</label>
+                  <v-text-field
+                    v-model="f.contact_phone"
+                    placeholder="Ej. 3312345678"
+                    prepend-inner-icon="mdi-phone-outline"
+                    density="compact"
+                    variant="outlined"
+                    rounded="lg"
+                    color="#07254A"
+                    maxlength="10"
+                    :rules="[r.required, r.phone]"
+                    class="custom-field bg-white"
+                  ></v-text-field>
+                </v-col>
+              </v-row>
+            </v-card>
+          </v-col>
+        </v-row>
 
-					<v-col cols="12" sm="6" md="3">
-						<div class="input-label">Código Postal</div>
-						<v-text-field v-model="f.fiscal_zip_code" placeholder="45100" variant="outlined" density="comfortable"
-							prepend-inner-icon="mdi-map-marker-outline" color="#07254A" maxlength="5"
-							class="enterprise-field"></v-text-field>
-					</v-col>
-				</v-row>
+        <!-- Barra Inferior -->
+        <div class="d-flex align-center justify-space-between flex-wrap gap-2 mt-4 pt-2">
+          <span class="text-caption text-slate-500">
+            Al registrarse, el sistema generará la cuenta del cliente y enviará el correo con sus claves de acceso.
+          </span>
 
-				<v-divider class="my-6 border-subtle"></v-divider>
+          <v-btn
+            type="submit"
+            color="#07254A"
+            variant="flat"
+            rounded="lg"
+            size="default"
+            prepend-icon="mdi-check-circle"
+            class="text-none font-weight-bold text-white px-6 submit-btn"
+            :loading="saving"
+          >
+            Registrar Empresa
+          </v-btn>
+        </div>
+      </v-form>
+    </v-card-text>
 
-				<!-- Sección 2: Contacto y Documentación -->
-				<div class="section-indicator mb-4">
-					<span class="step-circle">2</span>
-					<span class="step-label">Contacto y Expediente</span>
-				</div>
-
-				<v-row dense class="mb-4">
-					<v-col cols="12" sm="6" md="6">
-						<div class="input-label">Correo de Notificaciones <span class="required">*</span></div>
-						<v-text-field v-model="f.contact_email" placeholder="contacto@empresa.com" :rules="[
-							v => !!v || 'El correo es obligatorio',
-							v => /.+@.+\..+/.test(v) || 'Correo no válido'
-						]" variant="outlined" density="comfortable" prepend-inner-icon="mdi-email-outline" color="#07254A"
-							class="enterprise-field"></v-text-field>
-					</v-col>
-
-					<v-col cols="12" sm="6" md="6">
-						<div class="input-label">Teléfono de Contacto</div>
-						<v-text-field v-model="f.contact_phone" placeholder="33 1234 5678" variant="outlined" density="comfortable"
-							prepend-inner-icon="mdi-phone-outline" color="#07254A" class="enterprise-field"></v-text-field>
-					</v-col>
-				</v-row>
-
-				<!-- Botón de Guardado -->
-				<div class="d-flex justify-end pt-2">
-					<v-btn type="submit" color="#07254A" size="large" rounded="lg" elevation="0"
-						class="px-8 font-weight-bold text-white submit-btn" :loading="loading">
-						<v-icon start icon="mdi-check-circle-outline"></v-icon>
-						Registrar Empresa
-					</v-btn>
-				</div>
-			</v-form>
-		</v-card-text>
-
-		<!-- Snackbar -->
-		<v-snackbar v-model="snackbar.show" :color="snackbar.color" location="top right" timeout="3500">
-			{{ snackbar.text }}
-		</v-snackbar>
-	</v-card>
+    <!-- Snackbar -->
+    <v-snackbar v-model="snackbar.show" :color="snackbar.color" location="top right" timeout="3500">
+      {{ snackbar.text }}
+    </v-snackbar>
+  </v-card>
 </template>
 
 <script>
-import { useClientStore } from '@/store/clients';
-import api from '@/services/api';
+import { mapState, mapActions } from 'pinia';
+import { useClientsStore } from '@/store/clients';
 
 export default {
-	name: 'CreateClientComponent',
-	emits: ['client-created'],
-	data() {
-		return {
-			loading: false,
-			fileCsf: null,
-			f: {
-				company_name: '',
-				trade_name: '',
-				rfc: '',
-				contact_email: '',
-				contact_phone: '',
-				fiscal_regime: null,
-				fiscal_zip_code: '',
-			},
-			// Catálogo oficial SAT
-			fiscalRegimes: [
-				{ value: '601', label: '601 - General de Ley Personas Morales' },
-				{ value: '603', label: '603 - Personas Morales con Fines no Lucrativos' },
-				{ value: '612', label: '612 - Personas Físicas con Actividades Empresariales y Profesionales' },
-				{ value: '620', label: '620 - Sociedades Cooperativas de Producción' },
-				{ value: '626', label: '626 - Régimen Simplificado de Confianza (RESICO)' },
-			],
-			snackbar: {
-				show: false,
-				text: '',
-				color: 'success',
-			},
-		};
-	},
-	methods: {
-		resetForm() {
-			this.$refs.form.reset();
-			this.fileCsf = null;
-			this.f.fiscal_regime = null;
-		},
-		async submitClient() {
-      const { valid } = await this.$refs.form.validate();
-      if (!valid) return;
+  name: 'ClientRegistrationComponent',
+  emits: ['client-registered'],
+  data() {
+    return {
+      valid: false,
+      f: {
+        company_name: '',
+        trade_name: '',
+        rfc: '',
+        fiscal_regime: '',
+        fiscal_zip_code: '',
+        contact_email: '',
+        contact_phone: '',
+      },
+      fiscalRegimeOptions: [
+        { title: '601 - General de Ley Personas Morales', value: '601 - General de Ley Personas Morales' },
+        { title: '603 - Personas Morales con Fines no Lucrativos', value: '603 - Personas Morales con Fines no Lucrativos' },
+        { title: '612 - Personas Físicas con Actividades Empresariales y Profesionales', value: '612 - Personas Físicas con Actividades Empresariales y Profesionales' },
+        { title: '626 - Régimen Simplificado de Confianza (RESICO)', value: '626 - Régimen Simplificado de Confianza (RESICO)' },
+      ],
+      r: {
+        required: (v) => !!v || 'Campo obligatorio.',
+        rfc: (v) => (!v || v.length >= 12 && v.length <= 13) || 'El RFC debe tener entre 12 y 13 caracteres.',
+        email: (v) => (!v || /.+@.+\..+/.test(v)) || 'Ingresa un correo electrónico válido.',
+        phone: (v) => (!v || /^[0-9]{10}$/.test(v)) || 'El teléfono debe contener 10 dígitos numéricos.',
+        zipCode: (v) => (!v || /^[0-9]{5}$/.test(v)) || 'El C.P. debe contener 5 dígitos.',
+      },
+      snackbar: { show: false, text: '', color: 'success' },
+    };
+  },
 
-      this.loading = true;
+  computed: {
+    ...mapState(useClientsStore, ['saving']),
+  },
 
-      try {
-        const response = await api.post('/clients/store', this.f);
-        const resData = response.data.data;
+  methods: {
+    ...mapActions(useClientsStore, ['registerClient', 'addClientToTop']),
 
-        // Modal de credenciales
-        this.credentialsDialog = {
-          show: true,
-          email: resData.user_email,
-          password: resData.initial_password,
-        };
+    notify(text, color = 'success') {
+      this.snackbar.text = text;
+      this.snackbar.color = color;
+      this.snackbar.show = true;
+    },
 
-				this.$store.commit('clientSec/pushClient', resData.client);
-
-        this.resetForm();
-        this.$emit('client-created', resData.client);
-      } catch (error) {
-        this.snackbar = {
-          show: true,
-          text: error.response?.data?.message || 'Error al registrar.',
-          color: 'error',
-        };
-      } finally {
-        this.loading = false;
+    clearForm() {
+      this.f = {
+        company_name: '',
+        trade_name: '',
+        rfc: '',
+        fiscal_regime: '',
+        fiscal_zip_code: '',
+        contact_email: '',
+        contact_phone: '',
+      };
+      if (this.$refs.form) {
+        this.$refs.form.resetValidation();
       }
-    }
-	},
+    },
+
+    async submit() {
+      const { valid } = await this.$refs.form.validate();
+      if (!valid) {
+        this.notify('Por favor completa todos los campos requeridos correctamente.', 'error');
+        return;
+      }
+
+      const res = await this.registerClient({
+        company_name: this.f.company_name,
+        trade_name: this.f.trade_name,
+        rfc: this.f.rfc.toUpperCase().trim(),
+        fiscal_regime: this.f.fiscal_regime,
+        fiscal_zip_code: this.f.fiscal_zip_code.trim(),
+        contact_email: this.f.contact_email.toLowerCase().trim(),
+        contact_phone: this.f.contact_phone.trim(),
+      });
+
+      if (res.success) {
+				console.log(res)
+        this.notify(res.message);
+        this.addClientToTop(res.client)
+        this.clearForm();
+      } else {
+        this.notify(res.message, 'error');
+      }
+    },
+  },
 };
 </script>
 
 <style scoped>
-.client-card {
-	background: #ffffff !important;
-	border: 1px solid #e2e8f0 !important;
-	border-radius: 14px !important;
-	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
-	overflow: hidden;
+.client-reg-card {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 14px !important;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
 }
 
-/* Cabecera oscura consistente */
-.card-top-bar {
-	background: linear-gradient(135deg, #07254A 0%, #0e1726 100%);
-}
-
-.header-left-box {
-	min-width: 0;
-	max-width: calc(100% - 100px);
+.card-table-header {
+  background: linear-gradient(135deg, #07254A 0%, #0e1726 100%) !important;
 }
 
 .header-icon-box {
-	width: 40px;
-	height: 40px;
-	border-radius: 10px;
-	background: rgba(255, 255, 255, 0.12);
-	border: 1px solid rgba(255, 255, 255, 0.2);
-	display: flex;
-	align-items: center;
-	justify-content: center;
-}
-
-.header-text-container {
-	min-width: 0;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .card-title {
-	font-size: 1.05rem;
-	font-weight: 700;
-	letter-spacing: -0.2px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.2px;
 }
 
 .card-subtitle {
-	font-size: 0.78rem;
+  font-size: 0.78rem;
 }
 
-/* Botón limpiar blanco */
-.clear-btn-white {
-	background-color: #ffffff !important;
-	color: #07254A !important;
-	border-radius: 8px !important;
-	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15) !important;
-	letter-spacing: 0.2px;
+.bg-slate-50 {
+  background-color: #f8fafc;
 }
 
-.clear-btn-white:hover {
-	background-color: #f8fafc !important;
+.inner-step-card {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 10px !important;
 }
 
-.border-subtle {
-	border-color: #f1f5f9 !important;
+.step-badge {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background-color: #07254A;
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.section-indicator {
-	display: flex;
-	align-items: center;
+.step-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #1e293b;
 }
 
-.step-circle {
-	width: 22px;
-	height: 22px;
-	border-radius: 50%;
-	background: #eef2f6;
-	color: #07254A;
-	font-size: 0.75rem;
-	font-weight: 800;
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	margin-right: 8px;
+.field-label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 5px;
 }
 
-.step-label {
-	font-size: 0.88rem;
-	font-weight: 700;
-	color: #1e293b;
+:deep(.custom-field .v-field) {
+  border-radius: 8px !important;
+  font-size: 0.84rem !important;
 }
 
-.input-label {
-	font-size: 0.8rem;
-	font-weight: 600;
-	color: #475569;
-	margin-bottom: 6px;
-}
-
-.required {
-	color: #dc2626;
-	font-weight: bold;
-}
-
-/* Inputs y Selects */
-:deep(.enterprise-field .v-field) {
-	border-radius: 10px !important;
-	background-color: #f8fafc !important;
-	transition: border-color 0.2s ease, background-color 0.2s ease;
-}
-
-:deep(.enterprise-field .v-field__outline) {
-	--v-field-border-opacity: 0.12;
-}
-
-:deep(.enterprise-field .v-field:hover) {
-	background-color: #ffffff !important;
-}
-
-:deep(.enterprise-field .v-field--focused) {
-	background-color: #ffffff !important;
-	box-shadow: 0 0 0 3px rgba(7, 37, 74, 0.08) !important;
-}
-
-:deep(.enterprise-field input),
-:deep(.enterprise-field .v-select__selection-text) {
-	font-size: 0.88rem;
-	color: #0f172a;
-}
-
-:deep(.enterprise-field .v-field__prepend-inner .v-icon) {
-	color: #94a3b8 !important;
-	opacity: 1;
-}
-
-:deep(.enterprise-field .v-field--focused .v-field__prepend-inner .v-icon) {
-	color: #07254A !important;
+:deep(.uppercase-input input) {
+  text-transform: uppercase;
 }
 
 .submit-btn {
-	text-transform: none;
-	letter-spacing: 0.3px;
-	background-color: #07254A !important;
-	transition: transform 0.15s ease;
+  height: 40px !important;
+  font-size: 0.85rem !important;
+  box-shadow: 0 2px 6px rgba(7, 37, 74, 0.2) !important;
 }
 
-.submit-btn:hover {
-	transform: translateY(-1px);
+.gap-2 {
+  gap: 8px;
 }
 </style>

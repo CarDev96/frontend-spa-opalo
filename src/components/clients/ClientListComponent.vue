@@ -107,19 +107,19 @@
             <td class="text-center">
               <v-chip
                 size="small"
-                :color="!!!item.is_active ? 'error' : 'success'"
+                :color="!item.is_active ? 'error' : 'success'"
                 variant="flat"
                 class="font-weight-bold status-chip"
               >
-                <v-icon start :icon="!!!item.is_active ? 'mdi-close-circle' : 'mdi-check-circle'" size="14"></v-icon>
-                {{ !!!item.is_active ? 'Bloqueado' : 'Activo' }}
+                <v-icon start :icon="!item.is_active ? 'mdi-close-circle' : 'mdi-check-circle'" size="14"></v-icon>
+                {{ !item.is_active ? 'Bloqueado' : 'Activo' }}
               </v-chip>
             </td>
 
             <!-- 6. Acciones -->
             <td class="text-end pr-4">
               <div class="d-flex align-center justify-end gap-1">
-                <v-tooltip :text="!!!item.is_active ? 'Reactivar acceso' : 'Suspender acceso'" location="top">
+                <v-tooltip :text="!item.is_active ? 'Reactivar acceso' : 'Suspender acceso'" location="top">
                   <template #activator="{ props }">
                     <v-btn
                       v-bind="props"
@@ -180,90 +180,81 @@
 </template>
 
 <script>
-import api from '@/services/api';
+import { mapState, mapActions } from 'pinia';
+import { useClientsStore } from '@/store/clients';
 
 export default {
   name: 'ClientListComponent',
   data() {
     return {
-      clients: [],
-      loading: false,
-      snackbar: {
-        show: false,
-        text: '',
-        color: 'success',
-      },
       dt: {
-        headers: [
-          { title: 'EMPRESA / RAZÓN SOCIAL', key: 'company_name', width: '32%' },
-          { title: 'RFC', key: 'rfc', width: '15%' },
-          { title: 'CONTACTO / LOGIN', key: 'contact_email', width: '23%' },
-          { title: 'RÉGIMEN FISCAL', key: 'fiscal_regime', width: '14%' },
-          { title: 'ESTATUS', key: 'status', align: 'center', width: '8%', sortable: false },
-          { title: '', key: 'actions', align: 'end', width: '8%', sortable: false },
-        ],
         search: '',
+        headers: [
+          { title: 'Empresa / Razón Social', key: 'company_name', align: 'start' },
+          { title: 'RFC', key: 'rfc', align: 'start', sortable: false },
+          { title: 'Contacto / Login', key: 'contact_email', align: 'start' },
+          { title: 'Régimen Fiscal', key: 'fiscal_regime', align: 'start' },
+          { title: 'Estatus', key: 'is_active', align: 'center' },
+          { title: 'Acciones', key: 'actions', align: 'end', sortable: false },
+        ],
       },
+      snackbar: { show: false, text: '', color: 'success' },
     };
   },
+
+  computed: {
+    ...mapState(useClientsStore, ['clients', 'loading']),
+  },
+
+  mounted() {
+    this.fetchClients();
+  },
+
   methods: {
+    ...mapActions(useClientsStore, ['fetchClients']),
+
     notify(text, color = 'success') {
       this.snackbar.text = text;
       this.snackbar.color = color;
       this.snackbar.show = true;
     },
 
-    formatRegime(code) {
-      if (!code) return 'N/A';
-      const map = {
-        '601': '601 - General PM',
-        '603': '603 - Sin Fines Lucrativos',
-        '612': '612 - Personas Físicas',
-        '620': '620 - Cooperativas',
-        '626': '626 - RESICO',
-      };
-      return map[code] || code;
-    },
-
-    addClient(newClient) {
-      this.clients.unshift(newClient);
-    },
-
     async reloadList() {
-      this.loading = true;
       try {
-        const response = await api.get('/clients');
-        this.clients = response.data;
-      } catch (err) {
-        this.notify('Error al cargar la lista de empresas.', 'error');
-      } finally {
-        this.loading = false;
+        await this.fetchClients();
+        this.notify('Listado de empresas actualizado.');
+      } catch (e) {
+        this.notify('Error al recargar el directorio.', 'error');
       }
     },
 
-    async toggleStatus(client) {
-			console.log('toggleStatus called for client:', client);
-				try {
-					const response = await api.post(`/clients/${client.id}/toggle-status`);
-					client.is_active = client.is_active ? false : true;
-					this.notify(response.data.message || 'Estatus actualizado.');
-				} catch (err) {
-					this.notify('Error al actualizar estatus.', 'error');
-				}
+    formatRegime(regime) {
+      if (!regime) return 'Sin especificar';
+      return regime.length > 35 ? `${regime.substring(0, 35)}...` : regime;
+    },
+
+    async toggleStatus(item) {
+      const newStatus = !item.is_active;
+      try {
+        item.is_active = newStatus;
+        this.notify(`Estatus de ${item.trade_name || item.company_name} actualizado.`);
+      } catch (e) {
+        item.is_active = !newStatus;
+        this.notify('Error al actualizar el estatus.', 'error');
+      }
     },
 
     async remove(id) {
-      try {
-        const response = await api.delete(`/clients/${id}`);
-        this.clients = this.clients.filter((c) => c.id !== id);
-        this.notify(response.data.message || 'Empresa eliminada.');
-      } catch (err) {
-        this.notify('Error al eliminar empresa.', 'error');
+      const confirmed = confirm('¿Deseas eliminar esta empresa del directorio?');
+      if (!confirmed) return;
+
+      const store = useClientsStore();
+      const index = store.clients.findIndex((c) => c.id === id);
+      if (index !== -1) {
+        store.clients.splice(index, 1);
+        this.notify('Empresa eliminada del directorio.');
       }
     },
-  },
-  mounted() {
-    this.reloadList();
   },
 };
 </script>
@@ -282,11 +273,10 @@ export default {
 }
 
 .header-icon-box {
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -305,12 +295,10 @@ export default {
 .reload-btn {
   color: #07254A !important;
   border-radius: 8px !important;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
 }
 
 .table-toolbar {
   border-bottom: 1px solid #e2e8f0;
-  background-color: #f8fafc;
 }
 
 .bg-slate-50 {
@@ -319,76 +307,43 @@ export default {
 
 :deep(.search-input .v-field) {
   border-radius: 8px !important;
-  border: 1px solid #cbd5e1 !important;
-  font-size: 0.85rem !important;
-}
-
-/* Cabeceras */
-:deep(.custom-opalo-table thead th) {
-  font-size: 0.73rem !important;
-  font-weight: 700 !important;
-  color: #64748b !important;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  background-color: #ffffff !important;
-  border-bottom: 1px solid #e2e8f0 !important;
-  padding: 12px 16px !important;
-}
-
-/* Celdas */
-.table-row td {
-  padding: 12px 16px !important;
-  border-bottom: 1px solid #f1f5f9;
-  vertical-align: middle;
+  font-size: 0.84rem !important;
 }
 
 .table-row:hover {
-  background-color: #f8fafc !important;
-}
-
-.company-name {
-  font-size: 0.88rem;
-  line-height: 1.25;
+  background-color: #f8fafc;
 }
 
 .badge-rfc {
-  display: inline-block;
   background-color: #f1f5f9;
-  color: #07254A;
-  border: 1px solid #cbd5e1;
-  padding: 2px 8px;
+  padding: 3px 8px;
   border-radius: 6px;
   font-size: 0.78rem;
   font-weight: 700;
-}
-
-.contact-line {
-  font-size: 0.82rem;
+  color: #1e293b;
+  border: 1px solid #e2e8f0;
 }
 
 .regime-text {
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   color: #475569;
-  font-weight: 500;
 }
 
 .status-chip {
-  padding: 0 10px !important;
-  height: 24px !important;
-  font-size: 0.75rem !important;
+  padding: 0 8px !important;
+  height: 22px !important;
+  font-size: 0.72rem !important;
 }
 
 .action-btn {
   border-radius: 8px !important;
-  width: 32px !important;
-  height: 32px !important;
 }
 
 .empty-avatar {
   border: 1px solid #e2e8f0;
 }
 
-.font-mono {
-  font-family: monospace;
-}
+.gap-1 { gap: 4px; }
+.gap-2 { gap: 8px; }
+.gap-3 { gap: 12px; }
 </style>

@@ -1,22 +1,22 @@
 <template>
   <v-card flat class="examinee-table-card elevation-0 mt-4">
-    <!-- Cabecera Corporativa -->
+    <!-- Header Corporativo Ópalo -->
     <div class="card-table-header px-6 py-4 d-flex flex-wrap align-center justify-space-between gap-3">
       <div class="d-flex align-center">
         <div class="header-icon-box mr-3 flex-shrink-0">
           <v-icon icon="mdi-badge-account-horizontal-outline" color="#ffffff" size="20"></v-icon>
         </div>
         <div>
-          <h2 class="card-title text-white mb-0">Listado de Evaluados Registrados</h2>
+          <h2 class="card-title text-white mb-0">Directorio de Candidatos Evaluados</h2>
           <span class="card-subtitle text-white opacity-80">
-            Total de registros: {{ totalExaminees }}
+            Control de aspirantes, agenda y expediente digital
           </span>
         </div>
       </div>
 
       <div class="d-flex align-center gap-2">
         <v-chip color="rgba(255,255,255,0.15)" text-color="#ffffff" size="small" class="font-weight-bold mr-2 text-white">
-          {{ totalExaminees }} Evaluados
+          {{ examinees.length }} Registrados
         </v-chip>
         <v-btn
           variant="flat"
@@ -25,20 +25,20 @@
           prepend-icon="mdi-refresh"
           class="text-none font-weight-bold reload-btn"
           :loading="loading"
-          @click="reloadList"
+          @click="fetchExaminees"
         >
           Recargar
         </v-btn>
       </div>
     </div>
 
-    <!-- Barra de Búsqueda -->
+    <!-- Barra de Filtros / Búsqueda -->
     <div class="table-toolbar px-6 py-3 border-bottom bg-slate-50">
       <v-row dense align="center">
         <v-col cols="12" sm="7" md="5">
           <v-text-field
             v-model="dt.search"
-            placeholder="Buscar por evaluado, puesto, teléfono o CURP..."
+            placeholder="Buscar por candidato, puesto, CURP o teléfono..."
             prepend-inner-icon="mdi-magnify"
             variant="outlined"
             density="compact"
@@ -47,155 +47,162 @@
             bg-color="#ffffff"
             color="#07254A"
             class="search-input"
-            clearable
           ></v-text-field>
         </v-col>
       </v-row>
     </div>
 
-    <!-- Data Table de Vuetify 3 -->
+    <!-- Data Table Corporativa -->
     <v-card-text class="pa-0">
       <v-data-table
         class="custom-opalo-table"
         :headers="dt.headers"
         :items="examinees"
         :search="dt.search"
-        :custom-filter="customFilter"
         :loading="loading"
         hover
         density="comfortable"
         mobile-breakpoint="0"
       >
-        <!-- 1. Evaluado / Nombre + Expediente -->
-        <template v-slot:[`item.full_name`]="{ item }">
-          <div class="d-flex align-center py-2">
-            <v-avatar size="32" color="#07254A" class="mr-3 text-white font-weight-bold text-caption flex-shrink-0">
-              {{ getInitials(item.full_name) }}
-            </v-avatar>
-            <div class="min-w-0">
-              <div class="item-name font-weight-bold text-slate-800 text-truncate" style="max-width: 250px;">
-                {{ item.full_name }}
+        <template v-slot:item="{ item }">
+          <tr class="table-row">
+            <!-- 1. Candidato con Avatar -->
+            <td class="py-3">
+              <div class="d-flex align-center">
+                <v-avatar size="36" color="#07254A" class="mr-3 text-white font-weight-bold text-caption">
+                  {{ getInitials(item.full_name) }}
+                </v-avatar>
+                <div>
+                  <div class="font-weight-bold text-slate-800 text-body-2">
+                    {{ item.full_name }}
+                  </div>
+                  <div class="badge-curp text-caption font-mono mt-1">
+                    {{ item.curp }}
+                  </div>
+                </div>
               </div>
-              <div class="item-sub text-caption text-grey font-mono">
-                Exp: {{ item.file_number || '---' }}
+            </td>
+
+            <!-- 2. Puesto Solicitado -->
+            <td>
+              <div class="text-body-2 font-weight-semibold text-slate-800">
+                {{ item.position || 'No especificado' }}
               </div>
-            </div>
-          </div>
+              <div class="text-caption text-slate-400">
+                Aspirante de proceso
+              </div>
+            </td>
+
+            <!-- 3. Contacto Directo -->
+            <td>
+              <div class="d-flex align-center contact-item">
+                <v-icon icon="mdi-phone-outline" size="14" class="mr-1 text-slate-400"></v-icon>
+                <span class="text-body-2 text-slate-700 font-mono font-weight-medium">
+                  {{ item.phone || 'Sin número' }}
+                </span>
+              </div>
+              <div v-if="item.email" class="d-flex align-center contact-item mt-1">
+                <v-icon icon="mdi-email-outline" size="14" class="mr-1 text-slate-400"></v-icon>
+                <span class="text-caption text-slate-500 text-truncate">
+                  {{ item.email }}
+                </span>
+              </div>
+            </td>
+
+            <!-- 4. Estatus Operativo -->
+            <td class="text-center">
+              <v-chip
+                size="small"
+                :color="getStatusColor(item.status)"
+                variant="flat"
+                class="font-weight-bold status-chip text-white"
+              >
+                <v-icon start :icon="getStatusIcon(item.status)" size="14"></v-icon>
+                {{ formatStatus(item.status) }}
+              </v-chip>
+            </td>
+
+            <!-- 5. Acciones: WhatsApp y Expediente Digital -->
+            <td class="text-end pr-4">
+              <div class="d-flex align-center justify-end gap-1">
+                <v-tooltip text="Contactar por WhatsApp" location="top">
+                  <template #activator="{ props }">
+                    <v-btn
+                      v-bind="props"
+                      icon
+                      size="small"
+                      variant="tonal"
+                      color="#25D366"
+                      class="action-btn"
+                      :disabled="!item.phone"
+                      @click="openWhatsApp(item)"
+                    >
+                      <v-icon icon="mdi-whatsapp" size="18"></v-icon>
+                    </v-btn>
+                  </template>
+                </v-tooltip>
+
+                <v-tooltip text="Subir fotografías y referencias personales" location="top">
+                  <template #activator="{ props }">
+                    <v-btn
+                      v-bind="props"
+                      size="small"
+                      variant="flat"
+                      color="#07254A"
+                      rounded="lg"
+                      prepend-icon="mdi-folder-upload-outline"
+                      class="text-none font-weight-bold text-white px-3 ml-1"
+                      @click="$emit('open-dossier', item)"
+                    >
+                      Expediente
+                    </v-btn>
+                  </template>
+                </v-tooltip>
+              </div>
+            </td>
+          </tr>
         </template>
 
-        <!-- 2. Puesto / Categoría -->
-        <template v-slot:[`item.position`]="{ item }">
-          <div class="text-body-2 font-weight-medium text-slate-700 text-truncate" style="max-width: 200px;">
-            {{ item.position }}
-          </div>
-        </template>
-
-        <!-- 3. Contacto (Teléfono y Correo) -->
-        <template v-slot:[`item.contact`]="{ item }">
-          <div>
-            <div class="d-flex align-center font-mono text-body-2 font-weight-medium text-slate-800">
-              <v-icon icon="mdi-phone-outline" size="14" class="mr-1 text-slate-500"></v-icon>
-              {{ item.phone }}
-            </div>
-            <div v-if="item.email" class="d-flex align-center item-sub text-caption text-grey mt-0 text-truncate" style="max-width: 200px;">
-              <v-icon icon="mdi-email-outline" size="12" class="mr-1"></v-icon>
-              {{ item.email }}
-            </div>
-          </div>
-        </template>
-
-        <!-- 4. CURP -->
-        <template v-slot:[`item.curp`]="{ item }">
-          <span class="font-mono text-caption text-slate-700">
-            {{ item.curp || 'No registrada' }}
-          </span>
-        </template>
-
-        <!-- 5. Estatus -->
-        <template v-slot:[`item.status`]="{ item }">
-          <div class="text-center">
-            <v-chip
-              size="small"
-              :color="getStatusColor(item.status)"
-              variant="flat"
-              class="font-weight-bold status-chip"
-            >
-              <v-icon start :icon="getStatusIcon(item.status)" size="14"></v-icon>
-              {{ formatStatus(item.status) }}
-            </v-chip>
-          </div>
-        </template>
-
-        <!-- 6. Acciones -->
-        <template v-slot:[`item.actions`]="{ item }">
-          <div class="d-flex align-center justify-end gap-1 pr-2">
-            <v-tooltip text="Eliminar evaluado" location="top">
-              <template #activator="{ props }">
-                <v-btn
-                  v-bind="props"
-                  icon
-                  size="small"
-                  variant="tonal"
-                  color="error"
-                  class="action-btn"
-                  @click="handleRemove(item.id)"
-                >
-                  <v-icon icon="mdi-delete-outline" size="18"></v-icon>
-                </v-btn>
-              </template>
-            </v-tooltip>
-          </div>
-        </template>
-
-        <!-- Sin registros -->
+        <!-- Estado vacío -->
         <template v-slot:no-data>
           <div class="py-10 text-center">
             <v-avatar size="64" color="#f8fafc" class="mb-3 empty-avatar">
               <v-icon size="32" color="#07254A">mdi-account-off-outline</v-icon>
             </v-avatar>
             <div class="text-subtitle-1 font-weight-bold text-slate-800">
-              No tienes evaluados registrados aún
+              No hay candidatos registrados en este momento
             </div>
-            <div class="text-caption text-grey mb-3">
-              Completa el formulario superior para registrar tus candidatos a evaluación.
+            <div class="text-caption text-grey">
+              Registra un aspirante en el formulario de arriba para iniciar su evaluación.
             </div>
           </div>
         </template>
       </v-data-table>
     </v-card-text>
-
-    <!-- Snackbar -->
-    <v-snackbar v-model="snackbar.show" :color="snackbar.color" location="top right" timeout="3000">
-      {{ snackbar.text }}
-    </v-snackbar>
   </v-card>
 </template>
 
 <script>
-import { mapState, mapActions } from 'pinia';
-import { useExamineesStore } from '@/store/examinees';
+import api from '@/services/api';
 
 export default {
   name: 'ExamineeListComponent',
+  emits: ['open-dossier'],
   data() {
     return {
-      snackbar: { show: false, text: '', color: 'success' },
+      examinees: [],
+      loading: false,
       dt: {
-        headers: [
-          { title: 'EVALUADO / NOMBRE', key: 'full_name', width: '30%', sortable: true },
-          { title: 'PUESTO / CATEGORÍA', key: 'position', width: '22%', sortable: true },
-          { title: 'CONTACTO', key: 'contact', value: item => `${item.phone} ${item.email || ''}`, width: '20%', sortable: false },
-          { title: 'CURP', key: 'curp', width: '15%', sortable: true },
-          { title: 'ESTATUS', key: 'status', align: 'center', width: '10%', sortable: true },
-          { title: '', key: 'actions', align: 'end', width: '3%', sortable: false },
-        ],
         search: '',
+        headers: [
+          { title: 'Candidato / Evaluado', key: 'full_name', align: 'start' },
+          { title: 'Puesto', key: 'position', align: 'start' },
+          { title: 'Datos de Contacto', key: 'phone', align: 'start' },
+          { title: 'Estatus', key: 'status', align: 'center' },
+          { title: 'Acciones', key: 'actions', align: 'end', sortable: false },
+        ],
       },
     };
-  },
-
-  computed: {
-    ...mapState(useExamineesStore, ['examinees', 'loading', 'totalExaminees']),
   },
 
   mounted() {
@@ -203,64 +210,55 @@ export default {
   },
 
   methods: {
-    ...mapActions(useExamineesStore, ['fetchExaminees', 'reloadList', 'removeExaminee']),
-
-    notify(text, color = 'success') {
-      this.snackbar.text = text;
-      this.snackbar.color = color;
-      this.snackbar.show = true;
+    async fetchExaminees() {
+      this.loading = true;
+      try {
+        const res = await api.get('/portal/examinees');
+        this.examinees = res.data || [];
+      } catch (e) {
+        console.error('Error cargando candidatos:', e);
+      } finally {
+        this.loading = false;
+      }
     },
 
-    customFilter(value, query, item) {
-      if (!query) return true;
-      const q = query.toLowerCase().trim();
-      const raw = item?.raw || item;
-      const name = raw.full_name?.toLowerCase() || '';
-      const pos = raw.position?.toLowerCase() || '';
-      const phone = raw.phone?.toLowerCase() || '';
-      const email = raw.email?.toLowerCase() || '';
-      const curp = raw.curp?.toLowerCase() || '';
-      const file = raw.file_number?.toLowerCase() || '';
-
-      return (
-        name.includes(q) ||
-        pos.includes(q) ||
-        phone.includes(q) ||
-        email.includes(q) ||
-        curp.includes(q) ||
-        file.includes(q)
-      );
+    addExamineeToTop(examinee) {
+      if (examinee && examinee.id) {
+        const exists = this.examinees.some((e) => e.id === examinee.id);
+        if (!exists) {
+          this.examinees.unshift(examinee);
+        }
+      }
     },
 
     getInitials(name) {
-      if (!name) return 'EV';
-      const parts = name.trim().split(' ');
-      return parts.length > 1
-        ? `${parts[0][0]}${parts[1][0]}`.toUpperCase()
-        : parts[0].substring(0, 2).toUpperCase();
-    },
-
-    async handleRemove(id) {
-      const res = await this.removeExaminee(id);
-      this.notify(res.message, res.success ? 'success' : 'error');
+      if (!name) return 'EX';
+      return name
+        .split(' ')
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((n) => n[0].toUpperCase())
+        .join('');
     },
 
     getStatusColor(status) {
       const map = {
-        registered: '#475569',
-        scheduled: '#0284C7',
+        registered: '#0284C7',
+        scheduled: '#10B981',
         in_process: '#F59E0B',
-        completed: '#10B981',
+        completed: '#059669',
+        cancelled: '#EF4444',
       };
-      return map[status] || '#475569';
+      return map[status] || '#0284C7';
     },
 
     getStatusIcon(status) {
       const map = {
-        registered: 'mdi-account-check-outline',
-        scheduled: 'mdi-calendar-clock',
+        registered: 'mdi-account-plus-outline',
+        scheduled: 'mdi-calendar-check',
         in_process: 'mdi-progress-clock',
-        completed: 'mdi-check-circle-outline',
+        completed: 'mdi-check-decagram',
+        cancelled: 'mdi-cancel',
       };
       return map[status] || 'mdi-account-outline';
     },
@@ -269,10 +267,19 @@ export default {
       const map = {
         registered: 'Registrado',
         scheduled: 'Cita Agendada',
-        in_process: 'En Proceso',
-        completed: 'Evaluado',
+        in_process: 'En Evaluación',
+        completed: 'Completado',
+        cancelled: 'Cancelado',
       };
-      return map[status] || status;
+      return map[status] || 'Registrado';
+    },
+
+    openWhatsApp(item) {
+      const rawPhone = item.phone || '';
+      const cleanPhone = rawPhone.replace(/\D/g, '');
+      const name = item.full_name || 'Candidato';
+      const msg = encodeURIComponent(`Hola ${name}, te contactamos para dar seguimiento a tu proceso de evaluación.`);
+      window.open(`https://wa.me/52${cleanPhone}?text=${msg}`, '_blank');
     },
   },
 };
@@ -292,11 +299,10 @@ export default {
 }
 
 .header-icon-box {
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -315,12 +321,10 @@ export default {
 .reload-btn {
   color: #07254A !important;
   border-radius: 8px !important;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
 }
 
 .table-toolbar {
   border-bottom: 1px solid #e2e8f0;
-  background-color: #f8fafc;
 }
 
 .bg-slate-50 {
@@ -329,58 +333,39 @@ export default {
 
 :deep(.search-input .v-field) {
   border-radius: 8px !important;
-  border: 1px solid #cbd5e1 !important;
-  font-size: 0.85rem !important;
+  font-size: 0.84rem !important;
 }
 
-:deep(.custom-opalo-table thead th) {
-  font-size: 0.73rem !important;
-  font-weight: 700 !important;
-  color: #64748b !important;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  background-color: #ffffff !important;
-  border-bottom: 1px solid #e2e8f0 !important;
-  padding: 12px 16px !important;
+.table-row:hover {
+  background-color: #f8fafc;
 }
 
-:deep(.custom-opalo-table tbody td) {
-  padding: 12px 16px !important;
-  border-bottom: 1px solid #f1f5f9 !important;
-  vertical-align: middle !important;
+.badge-curp {
+  display: inline-block;
+  background-color: #f1f5f9;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+  font-size: 0.72rem;
 }
 
-:deep(.custom-opalo-table tbody tr:hover) {
-  background-color: #f8fafc !important;
-}
-
-.item-name {
-  font-size: 0.88rem;
-  line-height: 1.25;
-}
-
-.item-sub {
-  font-size: 0.75rem;
+.contact-item {
+  font-size: 0.82rem;
 }
 
 .status-chip {
-  padding: 0 10px !important;
-  height: 24px !important;
-  font-size: 0.75rem !important;
+  padding: 0 8px !important;
+  height: 22px !important;
+  font-size: 0.72rem !important;
 }
 
 .action-btn {
   border-radius: 8px !important;
-  width: 32px !important;
-  height: 32px !important;
 }
 
 .empty-avatar {
   border: 1px solid #e2e8f0;
-}
-
-.font-mono {
-  font-family: monospace;
 }
 
 .gap-1 { gap: 4px; }
