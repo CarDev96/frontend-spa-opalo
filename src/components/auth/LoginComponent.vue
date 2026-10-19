@@ -1,53 +1,158 @@
 <template>
 	<div class="login-wrapper">
-		<!-- Canvas interactivo de partículas -->
-		<canvas ref="particleCanvas" class="particles-canvas"></canvas>
+		<!-- 1. Barra Superior Corporativa Oficial -->
+		<header class="top-corporate-bar d-flex align-center justify-center px-4">
+			<div class="d-flex align-center">
+				<v-icon icon="mdi-shield-check" color="#ffffff" size="20" class="mr-2"></v-icon>
+				<span class="company-legal-name text-uppercase font-weight-bold text-white tracking-wide">
+					GCD ÓPALO CERTIFICACIÓN, S.A. DE C.V.
+				</span>
+			</div>
+		</header>
 
-		<!-- Orbes de luz de fondo (Efecto Aurora/Glow moderno) -->
-		<div class="glow-orb orb-1"></div>
-		<div class="glow-orb orb-2"></div>
+		<!-- 2. Contenedor Principal Dividido -->
+		<main class="login-main-container">
+			<v-container fluid class="fill-height pa-0">
+				<v-row no-gutters class="fill-height">
 
-		<v-container class="fill-height d-flex align-center justify-center">
-			<v-row justify="center">
-				<v-col cols="12" sm="8" md="5" lg="4" xl="3">
-					<!-- Tarjeta con Glassmorphism -->
-					<v-card class="glass-card pa-4 pa-sm-6" rounded="xl" elevation="0">
-						<v-card-text>
-							<!-- Header / Logo -->
-							<div class="text-center mb-6">
-								<div class="logo-circle mx-auto mb-3">
-									<img src="@/assets/opalo-logo.svg" class="center-block" alt="Logo">
-								</div>
-								<h1 class="login-title">Bienvenido</h1>
-								<p class="login-subtitle">Ingresa tus credenciales para continuar</p>
+					<!-- Lado Izquierdo: Patrón Institucional con Escudo Central -->
+					<v-col cols="12" md="6" lg="7" class="brand-hero-column d-none d-md-flex align-center justify-center">
+						<div class="brand-pattern-grid"></div>
+
+						<!-- Escudo central con corte geométrico -->
+						<div class="brand-center-stage text-center">
+							<div class="logo-shield-container mb-3">
+								<img
+									src="@/assets/opalo-logo.svg"
+									alt="GCD Ópalo Certificación"
+									class="brand-main-logo"
+								/>
 							</div>
 
+							<div class="badge-institutional mb-2">
+								<v-icon icon="mdi-certificate" size="14" class="mr-1"></v-icon>
+								Control de Confianza & Evaluación Integral
+							</div>
+
+							<p class="brand-stage-subtitle text-slate-500 mb-0">
+								Sistema Institucional de Expedientes Digitales
+							</p>
+						</div>
+
+						<!-- Badges de seguridad inferior -->
+						<div class="brand-bottom-badges d-flex align-center gap-4">
+							<span class="secure-badge">
+								<v-icon icon="mdi-lock-check" size="14" class="mr-1 text-emerald-600"></v-icon>
+								Cifrado SSL 256-Bit
+							</span>
+							<span class="secure-badge">
+								<v-icon icon="mdi-shield-account" size="14" class="mr-1 text-blue-600"></v-icon>
+								Acceso Restringido
+							</span>
+						</div>
+					</v-col>
+
+					<!-- Lado Derecho: Tarjeta de Acceso y Formulario -->
+					<v-col cols="12" md="6" lg="5" class="d-flex align-center justify-center pa-6 pa-sm-10 bg-slate-50">
+						<v-card flat class="login-form-card rounded-2xl pa-8 pa-sm-10 w-100 border">
+
+							<!-- Logo visible solo en pantallas móviles -->
+							<div class="text-center d-md-none mb-6">
+								<img
+									src="@/assets/opalo-logo.svg"
+									alt="GCD Ópalo"
+									style="max-height: 70px;"
+								/>
+							</div>
+
+							<!-- Encabezado del Formulario -->
+							<div class="form-header mb-8 text-center text-sm-start">
+								<div class="d-inline-flex align-center mb-2 px-3 py-1 rounded-pill bg-blue-50 border-blue-subtle">
+									<v-icon icon="mdi-account-key" size="15" color="#07254A" class="mr-1"></v-icon>
+									<span class="portal-badge-text font-weight-bold text-slate-700">Portal Institucional</span>
+								</div>
+								<h1 class="text-h5 font-weight-bold text-slate-900 mb-1">Bienvenido</h1>
+								<p class="text-body-2 text-slate-500 mb-0">
+									Ingresa tus credenciales corporativas para continuar
+								</p>
+							</div>
+
+							<!-- Formulario Funcional con Pinia -->
 							<v-form ref="form" @submit.prevent="check" autocomplete="off">
-								<!-- Usuario / Email -->
-								<v-text-field v-model="f.user" :rules="rules.user" label="Usuario / Correo"
-									prepend-inner-icon="mdi-account-outline" variant="outlined" density="comfortable" color="#b5a08f"
-									class="custom-field mb-2"></v-text-field>
 
-								<!-- Contraseña con botón de mostrar/ocultar -->
-								<v-text-field v-model="f.password" :rules="rules.password" :type="showPassword ? 'text' : 'password'"
-									label="Contraseña" prepend-inner-icon="mdi-lock-outline"
-									:append-inner-icon="showPassword ? 'mdi-eye-off-outline' : 'mdi-eye-outline'"
-									@click:append-inner="showPassword = !showPassword" variant="outlined" density="comfortable"
-									color="#b5a08f" class="custom-field mb-4"></v-text-field>
+								<!-- Input Usuario / Email -->
+								<div class="input-block mb-4">
+									<label class="custom-label">Usuario / Correo Electrónico</label>
+									<v-text-field
+										v-model="f.user"
+										:rules="rules.user"
+										placeholder="usuario@opalo.com"
+										prepend-inner-icon="mdi-account-outline"
+										variant="outlined"
+										density="comfortable"
+										rounded="lg"
+										color="#07254A"
+										bg-color="#ffffff"
+										class="custom-field"
+										:disabled="loading"
+										autofocus
+									></v-text-field>
+								</div>
 
-								<!-- Botón de Ingreso con gradiente -->
-								<v-btn block rounded="lg" size="large" class="login-btn text-white" type="submit" :loading="loading">
-									Ingresar
+								<!-- Input Contraseña -->
+								<div class="input-block mb-6">
+									<label class="custom-label">Contraseña</label>
+									<v-text-field
+										v-model="f.password"
+										:rules="rules.password"
+										:type="showPassword ? 'text' : 'password'"
+										placeholder="••••••••••••"
+										prepend-inner-icon="mdi-lock-outline"
+										:append-inner-icon="showPassword ? 'mdi-eye-off-outline' : 'mdi-eye-outline'"
+										@click:append-inner="showPassword = !showPassword"
+										variant="outlined"
+										density="comfortable"
+										rounded="lg"
+										color="#07254A"
+										bg-color="#ffffff"
+										class="custom-field"
+										:disabled="loading"
+									></v-text-field>
+								</div>
+
+								<!-- Botón de Ingreso Oficial Ópalo -->
+								<v-btn
+									type="submit"
+									block
+									color="#07254A"
+									rounded="lg"
+									size="large"
+									class="login-btn text-none font-weight-bold text-white elevation-2"
+									:loading="loading"
+								>
+									<span class="mr-2">Ingresar a la Plataforma</span>
+									<v-icon icon="mdi-arrow-right" size="18"></v-icon>
 								</v-btn>
 							</v-form>
-						</v-card-text>
-					</v-card>
-				</v-col>
-			</v-row>
-		</v-container>
+
+							<!-- Pie del Formulario -->
+							<div class="form-footer mt-8 pt-6 border-top text-center">
+								<p class="text-caption text-slate-400 mb-0">
+									¿Problemas para acceder? Contacta al administrador de <strong>Ópalo</strong>.
+								</p>
+								<div class="legal-notice text-caption text-slate-400 mt-2">
+									GCD Ópalo Certificación © {{ new Date().getFullYear() }}
+								</div>
+							</div>
+						</v-card>
+					</v-col>
+
+				</v-row>
+			</v-container>
+		</main>
 
 		<!-- Notificación Snackbar -->
-		<v-snackbar v-model="snackbar.show" :color="snackbar.color" timeout="3500" location="top right">
+		<v-snackbar v-model="snackbar.show" :color="snackbar.color" timeout="3500" location="top right" rounded="lg">
 			{{ snackbar.text }}
 		</v-snackbar>
 	</div>
@@ -69,7 +174,7 @@ export default {
 			},
 			rules: {
 				user: [
-					v => !!v || 'Usuario es requerido',
+					v => !!v || 'Usuario o correo es requerido',
 				],
 				password: [
 					v => !!v || 'Contraseña es requerida',
@@ -80,8 +185,6 @@ export default {
 				text: '',
 				color: 'error',
 			},
-			// Control de animación Canvas
-			animationFrameId: null,
 		};
 	},
 	methods: {
@@ -111,8 +214,9 @@ export default {
 				password: this.f.password,
 			})
 				.then(() => {
-					const redirectPath = this.$route.query.redirect || '/home';
-					this.$router.push('/home');
+					const authStore = useAuthStore();
+					const redirectPath = this.$route.query.redirect || authStore.user?.role?.default_route || '/home';
+					this.$router.push(redirectPath);
 				})
 				.catch((error) => {
 					this.authLogout();
@@ -128,250 +232,178 @@ export default {
 			const { valid } = await this.$refs.form.validate();
 			return valid;
 		},
-
-		// --- Motor de partículas interactivo nativo ---
-		initParticles() {
-			const canvas = this.$refs.particleCanvas;
-			if (!canvas) return;
-
-			const ctx = canvas.getContext('2d');
-			let width = (canvas.width = window.innerWidth);
-			let height = (canvas.height = window.innerHeight);
-
-			const mouse = { x: null, y: null, radius: 120 };
-
-			window.addEventListener('mousemove', (e) => {
-				mouse.x = e.x;
-				mouse.y = e.y;
-			});
-
-			window.addEventListener('mouseout', () => {
-				mouse.x = null;
-				mouse.y = null;
-			});
-
-			window.addEventListener('resize', () => {
-				width = canvas.width = window.innerWidth;
-				height = canvas.height = window.innerHeight;
-			});
-
-			// Creación de partículas
-			const particlesCount = Math.min(Math.floor((width * height) / 12000), 75);
-			const particles = [];
-
-			class Particle {
-				constructor() {
-					this.x = Math.random() * width;
-					this.y = Math.random() * height;
-					this.size = Math.random() * 2 + 1;
-					this.baseX = this.x;
-					this.baseY = this.y;
-					this.speedX = (Math.random() - 0.5) * 0.8;
-					this.speedY = (Math.random() - 0.5) * 0.8;
-					this.density = Math.random() * 20 + 5;
-				}
-
-				update() {
-					// Movimiento constante
-					this.x += this.speedX;
-					this.y += this.speedY;
-
-					// Rebote en bordes
-					if (this.x < 0 || this.x > width) this.speedX = -this.speedX;
-					if (this.y < 0 || this.y > height) this.speedY = -this.speedY;
-
-					// Interacción con cursor
-					if (mouse.x != null && mouse.y != null) {
-						const dx = mouse.x - this.x;
-						const dy = mouse.y - this.y;
-						const distance = Math.sqrt(dx * dx + dy * dy);
-
-						if (distance < mouse.radius) {
-							const force = (mouse.radius - distance) / mouse.radius;
-							const directionX = (dx / distance) * force * this.density;
-							const directionY = (dy / distance) * force * this.density;
-							this.x -= directionX;
-							this.y -= directionY;
-						}
-					}
-				}
-
-				draw() {
-					ctx.fillStyle = 'rgba(213, 195, 178, 0.7)';
-					ctx.beginPath();
-					ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-					ctx.fill();
-				}
-			}
-
-			for (let i = 0; i < particlesCount; i++) {
-				particles.push(new Particle());
-			}
-
-			// Conexión entre partículas cercanas
-			const connect = () => {
-				for (let a = 0; a < particles.length; a++) {
-					for (let b = a; b < particles.length; b++) {
-						const dx = particles[a].x - particles[b].x;
-						const dy = particles[a].y - particles[b].y;
-						const distance = Math.sqrt(dx * dx + dy * dy);
-
-						if (distance < 110) {
-							const opacity = 1 - distance / 110;
-							ctx.strokeStyle = `rgba(181, 160, 143, ${opacity * 0.25})`;
-							ctx.lineWidth = 1;
-							ctx.beginPath();
-							ctx.moveTo(particles[a].x, particles[a].y);
-							ctx.lineTo(particles[b].x, particles[b].y);
-							ctx.stroke();
-						}
-					}
-				}
-			};
-
-			const animate = () => {
-				ctx.clearRect(0, 0, width, height);
-				particles.forEach(p => {
-					p.update();
-					p.draw();
-				});
-				connect();
-				this.animationFrameId = requestAnimationFrame(animate);
-			};
-
-			animate();
-		},
 	},
 	mounted() {
-		this.initParticles();
-
 		if (this.$route.query.expired) {
 			this.showSnackbar('Tu sesión ha expirado. Por favor, ingresa nuevamente.', 'warning');
-		}
-	},
-	beforeUnmount() {
-		// Evitar fugas de memoria al cambiar de vista
-		if (this.animationFrameId) {
-			cancelAnimationFrame(this.animationFrameId);
 		}
 	},
 };
 </script>
 
 <style scoped>
-/* Fondo general moderno en tono carbón / cálido elegante */
 .login-wrapper {
+	min-height: 100vh;
+	display: flex;
+	flex-direction: column;
+	background-color: #ffffff;
+}
+
+/* 1. Barra Superior Corporativa */
+.top-corporate-bar {
+	height: 52px;
+	background: linear-gradient(90deg, #07254A 0%, #0d1e36 100%);
+	border-bottom: 2px solid #0284C7;
+	z-index: 10;
+	box-shadow: 0 2px 10px rgba(7, 37, 74, 0.2);
+}
+
+.company-legal-name {
+	font-size: 0.95rem;
+	letter-spacing: 1.2px;
+}
+
+/* 2. Estructura Principal */
+.login-main-container {
+	flex: 1;
+	display: flex;
+}
+
+/* Columna Izquierda (Branding Hero) */
+.brand-hero-column {
 	position: relative;
-	width: 100vw;
-	height: 100vh;
+	background-color: #f8fafc;
 	overflow: hidden;
-	background: radial-gradient(circle at 50% 20%, #07254A 0%, #140032 100%);
 }
 
-/* Canvas en segundo plano absoluto */
-.particles-canvas {
+/* Patrón de fondo tipo marca de agua con logos tenues */
+.brand-pattern-grid {
 	position: absolute;
-	top: 0;
-	left: 0;
-	width: 100%;
-	height: 100%;
-	z-index: 1;
-	pointer-events: none;
+	inset: 0;
+	background-image: radial-gradient(#cbd5e1 1.2px, transparent 1.2px), radial-gradient(#94a3b8 1px, #f8fafc 1px);
+	background-size: 36px 36px;
+	background-position: 0 0, 18px 18px;
+	opacity: 0.6;
 }
 
-/* Orbes difusos que generan profundidad (Efecto Glow) */
-.glow-orb {
-	position: absolute;
-	border-radius: 50%;
-	filter: blur(100px);
-	z-index: 0;
-	opacity: 0.25;
-	pointer-events: none;
-}
-
-.orb-1 {
-	top: 15%;
-	left: 20%;
-	width: 350px;
-	height: 350px;
-	background: #07254A;
-}
-
-.orb-2 {
-	bottom: 10%;
-	right: 25%;
-	width: 400px;
-	height: 400px;
-	background: #07254A;
-}
-
-/* Tarjeta de Vidrio (Glassmorphism) */
-.glass-card {
+/* Centro geométrico / Escudo */
+.brand-center-stage {
 	position: relative;
 	z-index: 2;
-	background: #07254A !important;
-	backdrop-filter: blur(20px);
-	-webkit-backdrop-filter: blur(20px);
-	border: 1px solid rgba(254, 252, 252, 0.08) !important;
-	box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45) !important;
+	background: #ffffff;
+	padding: 44px 36px;
+	border-radius: 24px;
+	max-width: 440px;
+	width: 88%;
+	border: 1px solid #e2e8f0;
+	box-shadow: 0 20px 45px rgba(7, 37, 74, 0.08);
 }
 
-/* Detalle del icono superior */
-.logo-circle {
-	width: 64px;
-	height: 64px;
-	border-radius: 50%;
-	background: rgba(249, 246, 246, 0.898);
-	border: 1px solid rgba(181, 160, 143, 0.25);
-	display: flex;
+.brand-main-logo {
+	max-height: 120px;
+	max-width: 220px;
+	object-fit: contain;
+}
+
+.badge-institutional {
+	display: inline-flex;
 	align-items: center;
-	justify-content: center;
+	font-size: 0.74rem;
+	font-weight: 700;
+	text-transform: uppercase;
+	color: #07254A;
+	background: #e0f2fe;
+	padding: 4px 12px;
+	border-radius: 50px;
+	letter-spacing: 0.3px;
 }
 
-.login-title {
-	font-size: 1.65rem;
+.brand-stage-subtitle {
+	font-size: 0.82rem;
+	line-height: 1.4;
+}
+
+.brand-bottom-badges {
+	position: absolute;
+	bottom: 24px;
+	z-index: 2;
+}
+
+.secure-badge {
+	font-size: 0.74rem;
 	font-weight: 600;
-	color: #f5f2ee;
-	letter-spacing: -0.5px;
+	color: #64748b;
+	background: rgba(255, 255, 255, 0.9);
+	backdrop-filter: blur(4px);
+	padding: 6px 14px;
+	border-radius: 20px;
+	border: 1px solid #e2e8f0;
 }
 
-.login-subtitle {
-	font-size: 0.88rem;
-	color: #f7f8f8;
-	margin-top: 4px;
+/* Columna Derecha (Formulario) */
+.login-form-card {
+	background-color: #ffffff !important;
+	max-width: 460px;
+	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04) !important;
+	border-color: #e2e8f0 !important;
 }
 
-/* Estilo de los inputs en modo oscuro */
-:deep(.v-field) {
-	background-color: rgba(255, 255, 255, 0.03) !important;
+.border-blue-subtle {
+	border: 1px solid #bfdbfe;
+}
+
+.portal-badge-text {
+	font-size: 0.72rem;
+	letter-spacing: 0.3px;
+	text-transform: uppercase;
+}
+
+.custom-label {
+	display: block;
+	font-size: 0.78rem;
+	font-weight: 700;
+	color: #334155;
+	margin-bottom: 6px;
+	letter-spacing: 0.2px;
+}
+
+:deep(.custom-field .v-field) {
 	border-radius: 10px !important;
-	color: #f3ece6 !important;
+	font-size: 0.88rem !important;
 }
 
-:deep(.v-field--variant-outlined .v-field__outline) {
-	color: rgba(255, 255, 255, 0.15) !important;
+:deep(.custom-field .v-field--focused) {
+	border-color: #07254A !important;
+	box-shadow: 0 0 0 3px rgba(7, 37, 74, 0.1) !important;
 }
 
-:deep(.v-field--focused .v-field__outline) {
-	color: #ffffff !important;
-}
-
-:deep(input) {
-	color: #ffffff !important;
-}
-
-/* Botón con degradado de tu paleta #b5a08f */
 .login-btn {
-	background: linear-gradient(135deg, #14022d 0%, #1c013f 100%) !important;
-	font-weight: 600;
-	letter-spacing: 0.5px;
-	text-transform: none;
-	box-shadow: 0 8px 20px rgba(181, 160, 143, 0.25) !important;
+	height: 48px !important;
+	background: linear-gradient(135deg, #07254A 0%, #0e1e38 100%) !important;
 	transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .login-btn:hover {
-	transform: translateY(-2px);
-	box-shadow: 0 12px 24px rgba(181, 160, 143, 0.35) !important;
+	transform: translateY(-1px);
+	box-shadow: 0 6px 20px rgba(7, 37, 74, 0.25) !important;
+}
+
+.border-top {
+	border-top: 1px solid #f1f5f9;
+}
+
+.legal-notice {
+	font-size: 0.7rem;
+}
+
+.gap-4 {
+	gap: 16px;
+}
+
+@media (max-width: 960px) {
+	.company-legal-name {
+		font-size: 0.78rem;
+		letter-spacing: 0.5px;
+	}
 }
 </style>

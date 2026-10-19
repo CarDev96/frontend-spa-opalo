@@ -1,40 +1,64 @@
 <template>
-  <div class="payment-receipts-view-container px-0 py-2">
-    <!-- 1. Módulo Formulario de Subida -->
-    <upload-receipt-component
-      @receipt-uploaded="onReceiptUploaded"
-      class="mb-4"
-    />
+  <div class="client-payment-receipts-view pa-4">
+    <!-- Header General -->
+    <v-card flat class="top-nav-card elevation-0 mb-6">
+      <div class="px-6 py-4 border-bottom bg-white d-flex align-center justify-space-between">
+        <div class="d-flex align-center">
+          <v-btn
+            variant="text"
+            color="#07254A"
+            density="compact"
+            prepend-icon="mdi-arrow-left"
+            class="text-none font-weight-bold mr-2"
+            @click="$router.push('/portal/orders')"
+          >
+            Volver a Órdenes
+          </v-btn>
+          <span class="text-caption text-slate-400">|</span>
+          <span class="text-caption font-weight-bold text-slate-600 ml-2">
+            Comprobante de Pago
+          </span>
+        </div>
+      </div>
+    </v-card>
 
-    <!-- 2. Módulo Listado e Historial -->
-    <receipts-list-component
-      ref="receiptsListRef"
+    <!-- Componente Único Enfocado en la Orden -->
+    <UploadReceiptComponent
+      :order-id="activeOrderId"
+      @receipt-uploaded="onReceiptUploaded"
     />
   </div>
 </template>
 
 <script>
 import UploadReceiptComponent from '@/components/clients/payments/UploadReceiptComponent.vue';
-import ReceiptsListComponent from '@/components/clients/payments/ReceiptsListComponent.vue';
 
 export default {
   name: 'ClientPaymentReceiptsView',
   components: {
     UploadReceiptComponent,
-    ReceiptsListComponent,
+  },
+  computed: {
+    activeOrderId() {
+      return this.$route.query.order_id || this.$route.params.orderId || null;
+    },
   },
   methods: {
     onReceiptUploaded() {
-      // Recarga la tabla de comprobantes al completarse la subida
-      this.$refs.receiptsListRef?.fetchReceipts();
+      // Opcional: después de subir con éxito, si quieres redirigir o mantenerte aquí
     },
   },
 };
 </script>
 
 <style scoped>
-.payment-receipts-view-container {
+.client-payment-receipts-view {
   max-width: 1400px;
   margin: 0 auto;
+}
+
+.top-nav-card {
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 12px !important;
 }
 </style>

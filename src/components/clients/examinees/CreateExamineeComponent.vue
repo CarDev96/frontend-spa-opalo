@@ -60,7 +60,8 @@
               variant="outlined"
               rounded="lg"
               color="#07254A"
-              :rules="[r.required]"
+              maxlength="10"
+              :rules="[r.required, r.phone]"
               class="custom-field font-mono"
             ></v-text-field>
           </v-col>
@@ -128,6 +129,7 @@ import { useExamineesStore } from '@/store/examinees';
 
 export default {
   name: 'CreateExamineeComponent',
+  emits: ['examinee-created'],
   data() {
     return {
       valid: false,
@@ -140,6 +142,7 @@ export default {
       },
       r: {
         required: (v) => !!v || 'Campo obligatorio.',
+        phone: (v) => !v || /^[0-9]{10}$/.test(v) || 'Debe ser de 10 dígitos numéricos.',
         email: (v) => !v || /.+@.+\..+/.test(v) || 'Correo no válido.',
         curp: (v) => !v || v.length === 18 || 'La CURP debe tener 18 caracteres.',
       },
@@ -164,22 +167,27 @@ export default {
       const { valid } = await this.$refs.form.validate();
       if (!valid) return;
 
-      const res = await this.addExaminee({
-        full_name: this.f.full_name,
-        position: this.f.position,
-        phone: this.f.phone,
-        email: this.f.email || null,
-        curp: this.f.curp ? this.f.curp.toUpperCase() : null,
-      });
+      const payload = {
+        full_name: this.f.full_name.trim(),
+        position: this.f.position.trim(),
+        phone: this.f.phone.trim(),
+        email: this.f.email ? this.f.email.trim().toLowerCase() : null,
+        curp: this.f.curp ? this.f.curp.trim().toUpperCase() : null,
+      };
+
+      const res = await this.addExaminee(payload);
 
       if (res.success) {
         this.notify(res.message);
+        this.$emit('examinee-created', res.examinee);
         this.$refs.form.reset();
-        this.f.full_name = '';
-        this.f.position = '';
-        this.f.phone = '';
-        this.f.email = '';
-        this.f.curp = '';
+        this.f = {
+          full_name: '',
+          position: '',
+          phone: '',
+          email: '',
+          curp: '',
+        };
       } else {
         this.notify(res.message, 'error');
       }

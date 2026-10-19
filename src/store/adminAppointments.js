@@ -9,6 +9,10 @@ export const useAdminAppointmentsStore = defineStore('adminAppointments', {
     availableSlots: [],
     loadingSlots: false,
     booking: false,
+
+    // Estados para la tabla general de citas
+    appointments: [],
+    loadingAppointments: false,
   }),
 
   actions: {
@@ -50,5 +54,29 @@ export const useAdminAppointmentsStore = defineStore('adminAppointments', {
         this.booking = false;
       }
     },
+
+    // Acción para cargar la tabla de citas
+    async fetchAllAppointments() {
+      this.loadingAppointments = true;
+      try {
+        const res = await api.get('/admin/appointments/dt');
+        this.appointments = res.data?.data || res.data || [];
+      } catch (e) {
+        console.error('Error cargando lista de citas:', e);
+      } finally {
+        this.loadingAppointments = false;
+      }
+    },
+
+    // Acción para cancelar una cita
+    async cancelAppointment(id) {
+      try {
+        const res = await api.patch(`/admin/appointments/${id}/cancel`);
+        await this.fetchAllAppointments(); // Recarga la tabla automáticamente al cancelar
+        return { success: true, message: res.data?.message || 'Cita cancelada correctamente.' };
+      } catch (e) {
+        return { success: false, message: e.response?.data?.message || 'Error al cancelar.' };
+      }
+    }
   },
 });

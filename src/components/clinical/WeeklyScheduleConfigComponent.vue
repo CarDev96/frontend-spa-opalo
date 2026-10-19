@@ -21,7 +21,7 @@
             </v-chip>
           </div>
           <span class="card-subtitle text-white opacity-80">
-            Define la disponibilidad semanal para citas y evaluaciones
+            Define la disponibilidad semanal para citas y evaluaciones (bloques de 30 min)
           </span>
         </div>
       </div>
@@ -139,7 +139,7 @@
                 ></v-select>
               </td>
 
-              <!-- Capacidad de citas -->
+              <!-- Capacidad de citas en bloques de 30 min -->
               <td class="text-center py-3 pr-6">
                 <v-chip
                   v-if="day.is_active && calculateSlots(day) > 0"
@@ -149,7 +149,7 @@
                   class="font-weight-bold slot-chip"
                 >
                   <v-icon icon="mdi-clock-outline" start size="13"></v-icon>
-                  {{ calculateSlots(day) }} citas ({{ calculateHours(day) }} hrs)
+                  {{ calculateSlots(day) }} citas ({{ calculateHoursText(day) }})
                 </v-chip>
                 <span v-else class="text-caption text-slate-400 font-italic">
                   {{ day.is_active ? 'Horario inválido' : 'No labora' }}
@@ -178,20 +178,34 @@ export default {
     return {
       snackbar: { show: false, text: '', color: 'success' },
       isConfigured: false,
+      // Horarios en intervalos exactos de 30 minutos (07:00 a 20:00)
       timeOptions: [
         { title: '07:00 AM', value: '07:00' },
+        { title: '07:30 AM', value: '07:30' },
         { title: '08:00 AM', value: '08:00' },
+        { title: '08:30 AM', value: '08:30' },
         { title: '09:00 AM', value: '09:00' },
+        { title: '09:30 AM', value: '09:30' },
         { title: '10:00 AM', value: '10:00' },
+        { title: '10:30 AM', value: '10:30' },
         { title: '11:00 AM', value: '11:00' },
+        { title: '11:30 AM', value: '11:30' },
         { title: '12:00 PM', value: '12:00' },
+        { title: '12:30 PM', value: '12:30' },
         { title: '01:00 PM', value: '13:00' },
+        { title: '01:30 PM', value: '13:30' },
         { title: '02:00 PM', value: '14:00' },
+        { title: '02:30 PM', value: '14:30' },
         { title: '03:00 PM', value: '15:00' },
+        { title: '03:30 PM', value: '15:30' },
         { title: '04:00 PM', value: '16:00' },
+        { title: '04:30 PM', value: '16:30' },
         { title: '05:00 PM', value: '17:00' },
+        { title: '05:30 PM', value: '17:30' },
         { title: '06:00 PM', value: '18:00' },
+        { title: '06:30 PM', value: '18:30' },
         { title: '07:00 PM', value: '19:00' },
+        { title: '07:30 PM', value: '19:30' },
         { title: '08:00 PM', value: '20:00' },
       ],
       weekDays: [
@@ -234,7 +248,6 @@ export default {
     loadExistingSchedules(psych) {
       if (!psych || !psych.psychologist_schedules || psych.psychologist_schedules.length === 0) {
         this.isConfigured = false;
-        // Si no tiene configuración previa en BD, dejamos los días apagados para evitar confusión
         this.weekDays.forEach((d) => {
           d.is_active = false;
           d.start_time = d.day_of_week === 6 ? '09:00' : '08:00';
@@ -249,29 +262,48 @@ export default {
         const found = psych.psychologist_schedules.find((s) => s.day_of_week === d.day_of_week);
         if (found) {
           d.is_active = Boolean(found.is_active);
-          d.start_time = found.start_time.substring(0, 5);
-          d.end_time = found.end_time.substring(0, 5);
+          d.start_time = (found.start_time || '08:00').substring(0, 5);
+          d.end_time = (found.end_time || '17:00').substring(0, 5);
         } else {
           d.is_active = false;
         }
       });
     },
 
-    calculateHours(day) {
-      const start = parseInt(day.start_time.split(':')[0], 10);
-      const end = parseInt(day.end_time.split(':')[0], 10);
-      return Math.max(0, end - start);
+    /**
+     * Calcula la diferencia total de minutos entre hora de inicio y fin
+     */
+    calculateTotalMinutes(day) {
+      if (!day.start_time || !day.end_time) return 0;
+      const [startH, startM] = day.start_time.split(':').map(Number);
+      const [endH, endM] = day.end_time.split(':').map(Number);
+      const startTotal = startH * 60 + startM;
+      const endTotal = endH * 60 + endM;
+      return Math.max(0, endTotal - startTotal);
     },
 
+    /**
+     * Devuelve el texto formateado de horas trabajadas (ej: "8.5 hrs" o "9 hrs")
+     */
+    calculateHoursText(day) {
+      const minutes = this.calculateTotalMinutes(day);
+      const hours = minutes / 60;
+      return Number.isInteger(hours) ? `${hours} hrs` : `${hours.toFixed(1)} hrs`;
+    },
+
+    /**
+     * Calcula la cantidad exacta de citas disponibles de 30 minutos
+     */
     calculateSlots(day) {
-      return this.calculateHours(day);
+      const totalMinutes = this.calculateTotalMinutes(day);
+      return Math.floor(totalMinutes / 30);
     },
 
     async handleSave() {
       if (!this.selectedPsychologistId) return;
 
       for (const d of this.weekDays) {
-        if (d.is_active && this.calculateHours(d) <= 0) {
+        if (d.is_active && this.calculateTotalMinutes(d) <= 0) {
           this.notify(`En ${d.name}, la hora de fin debe ser posterior a la de inicio.`, 'error');
           return;
         }
@@ -281,7 +313,7 @@ export default {
         day_of_week: d.day_of_week,
         start_time: d.start_time,
         end_time: d.end_time,
-        slot_duration_minutes: 60,
+        slot_duration_minutes: 30, // Granularidad de 30 minutos configurada
         is_active: d.is_active,
       }));
 
@@ -339,7 +371,6 @@ export default {
   border-bottom: 1px solid #e2e8f0;
 }
 
-/* Cabeceras de la tabla alineadas con el sistema */
 :deep(.custom-schedule-table thead th) {
   font-size: 0.73rem !important;
   font-weight: 700 !important;
@@ -370,7 +401,7 @@ export default {
 }
 
 .hour-select {
-  max-width: 135px;
+  max-width: 145px;
   font-size: 0.82rem;
 }
 

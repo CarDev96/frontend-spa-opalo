@@ -162,6 +162,33 @@
               </v-row>
             </v-card>
           </v-col>
+
+          <!-- BLOQUE 3: POLÍTICA DE ORDEN DE COMPRA (NUEVO) -->
+          <v-col cols="12" class="mb-2">
+            <div class="section-indicator d-flex align-center mb-3">
+              <span class="step-badge mr-2">3</span>
+              <span class="step-title">Condiciones de Facturación</span>
+            </div>
+            <v-card flat class="inner-step-card pa-4">
+              <div class="d-flex align-center justify-space-between flex-wrap gap-2">
+                <div style="max-width: 680px;">
+                  <span class="font-weight-bold text-slate-800 text-body-2 d-block">
+                    ¿Requiere Orden de Compra (PO) previa?
+                  </span>
+                  <span class="text-caption text-slate-500">
+                    Al activar esta opción, el cliente verá un aviso obligatorio al generar citas u órdenes indicando que debe enviar su Orden de Compra previa a la facturación.
+                  </span>
+                </div>
+                <v-switch
+                  v-model="f.requires_purchase_order"
+                  color="#07254A"
+                  inset
+                  hide-details
+                  density="compact"
+                ></v-switch>
+              </div>
+            </v-card>
+          </v-col>
         </v-row>
 
         <!-- Barra Inferior -->
@@ -211,6 +238,7 @@ export default {
         fiscal_zip_code: '',
         contact_email: '',
         contact_phone: '',
+        requires_purchase_order: false,
       },
       fiscalRegimeOptions: [
         { title: '601 - General de Ley Personas Morales', value: '601 - General de Ley Personas Morales' },
@@ -220,7 +248,7 @@ export default {
       ],
       r: {
         required: (v) => !!v || 'Campo obligatorio.',
-        rfc: (v) => (!v || v.length >= 12 && v.length <= 13) || 'El RFC debe tener entre 12 y 13 caracteres.',
+        rfc: (v) => (!v || (v.length >= 12 && v.length <= 13)) || 'El RFC debe tener entre 12 y 13 caracteres.',
         email: (v) => (!v || /.+@.+\..+/.test(v)) || 'Ingresa un correo electrónico válido.',
         phone: (v) => (!v || /^[0-9]{10}$/.test(v)) || 'El teléfono debe contener 10 dígitos numéricos.',
         zipCode: (v) => (!v || /^[0-9]{5}$/.test(v)) || 'El C.P. debe contener 5 dígitos.',
@@ -251,6 +279,7 @@ export default {
         fiscal_zip_code: '',
         contact_email: '',
         contact_phone: '',
+        requires_purchase_order: false,
       };
       if (this.$refs.form) {
         this.$refs.form.resetValidation();
@@ -272,12 +301,12 @@ export default {
         fiscal_zip_code: this.f.fiscal_zip_code.trim(),
         contact_email: this.f.contact_email.toLowerCase().trim(),
         contact_phone: this.f.contact_phone.trim(),
+        requires_purchase_order: this.f.requires_purchase_order,
       });
 
       if (res.success) {
-				console.log(res)
         this.notify(res.message);
-        this.addClientToTop(res.client)
+        this.addClientToTop(res.client);
         this.clearForm();
       } else {
         this.notify(res.message, 'error');

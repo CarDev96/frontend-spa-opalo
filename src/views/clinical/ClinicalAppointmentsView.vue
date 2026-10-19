@@ -1,10 +1,10 @@
 <template>
 	<div class="clinical-appointments-container px-0 py-2">
-		<!-- Cronograma de Citas -->
-		<appointments-timeline-component />
+		<!-- Cronograma y Tabla de Citas -->
+		<appointments-timeline-component ref="timelineRef" />
 
 		<!-- Drawer Lateral Deslizable -->
-		<appointment-detail-drawer-component />
+		<appointment-detail-drawer-component @session-updated="refreshTable" />
 	</div>
 </template>
 
@@ -17,6 +17,13 @@ export default {
 	components: {
 		AppointmentsTimelineComponent,
 		AppointmentDetailDrawerComponent,
+	},
+	methods: {
+		refreshTable() {
+			if (this.$refs.timelineRef) {
+				this.$refs.timelineRef.loadAppointments();
+			}
+		},
 	},
 };
 </script>

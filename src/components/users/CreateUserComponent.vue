@@ -70,7 +70,25 @@
               :rules="[r.required]"
               color="#07254A"
               class="custom-field"
+              @update:model-value="onRoleChange"
             ></v-select>
+          </v-col>
+
+          <!-- Teléfono Móvil (Solo visible y obligatorio cuando se selecciona Psicología) -->
+          <v-col cols="12" md="6" class="px-2" v-if="isPsychologyRole">
+            <label class="field-label">Teléfono Móvil (Psicóloga) *</label>
+            <v-text-field
+              v-model="f.phone"
+              placeholder="3312345678"
+              prepend-inner-icon="mdi-phone"
+              variant="outlined"
+              density="compact"
+              rounded="lg"
+              maxlength="10"
+              :rules="[r.required, r.phone]"
+              color="#07254A"
+              class="custom-field"
+            ></v-text-field>
           </v-col>
         </v-row>
 
@@ -189,11 +207,13 @@ export default {
         name: '',
         email: '',
         role_id: null,
+        phone: '',
         password: '',
       },
       r: {
         required: v => !!v || 'Campo requerido.',
         email: v => /.+@.+\..+/.test(v) || 'Formato de correo no válido.',
+        phone: v => /^[0-9]{10}$/.test(v) || 'Debe ser de 10 dígitos numéricos.',
       },
       credentialsDialog: {
         show: false,
@@ -204,9 +224,20 @@ export default {
   },
   computed: {
     ...mapState(useUserStore, ['roles']),
+
+    isPsychologyRole() {
+      const selected = this.roles?.find((role) => role.id === this.f.role_id);
+      return selected && selected.name === 'psychology';
+    },
   },
   methods: {
     ...mapActions(useUserStore, ['addUser', 'fetchRoles']),
+
+    onRoleChange() {
+      if (!this.isPsychologyRole) {
+        this.f.phone = '';
+      }
+    },
 
     generatePassword() {
       const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$';
@@ -220,6 +251,7 @@ export default {
     resetForm() {
       this.$refs.form?.reset();
       this.f.password = '';
+      this.f.phone = '';
     },
 
     async submitUser() {
@@ -228,7 +260,15 @@ export default {
 
       this.loading = true;
       try {
-        const response = await api.post('/users/store', this.f);
+        const payload = {
+          name: this.f.name.trim(),
+          email: this.f.email.trim().toLowerCase(),
+          role_id: this.f.role_id,
+          phone: this.isPsychologyRole ? this.f.phone.trim() : null,
+          password: this.f.password ? this.f.password : null,
+        };
+
+        const response = await api.post('/users/store', payload);
         const resData = response.data.data;
 
         this.credentialsDialog = {

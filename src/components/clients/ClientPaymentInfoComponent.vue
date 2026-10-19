@@ -1,294 +1,217 @@
 <template>
-  <v-container fluid class="pa-2 pa-sm-4 max-content-wrapper">
-    <v-row dense>
-      <v-col cols="12">
-        <v-card flat class="main-payment-card elevation-0">
-          <!-- Cabecera Corporativa Ópalo -->
-          <div class="card-header px-4 py-3 px-sm-6 py-sm-4 opaloBrand">
-            <div class="d-flex align-start align-sm-center">
-              <div class="header-icon-box mr-3 flex-shrink-0">
-                <v-icon icon="mdi-bank-transfer" color="#ffffff" size="20"></v-icon>
-              </div>
-              <div class="flex-grow-1 min-w-0">
-                <h2 class="card-title text-white mb-1">
-                  Cuentas Bancarias y Métodos de Pago
-                </h2>
-                <p class="card-subtitle text-white opacity-80 mb-0">
-                  Transfiere utilizando la cuenta adecuada según tus requerimientos fiscales
-                </p>
+  <v-card flat class="payment-info-card elevation-0">
+    <!-- Header Corporativo -->
+    <div class="card-header px-6 py-4 d-flex align-center justify-space-between text-white">
+      <div class="d-flex align-center">
+        <div class="header-icon-box mr-3 flex-shrink-0">
+          <v-icon icon="mdi-bank" color="#ffffff" size="22"></v-icon>
+        </div>
+        <div>
+          <h2 class="card-title text-white mb-0">Cuentas Bancarias y Métodos de Pago</h2>
+          <span class="card-subtitle text-white opacity-80">
+            Transfiere utilizando la cuenta oficial fiscal para la emisión de tu comprobante
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <v-card-text class="pa-6 bg-white">
+      <!-- Banner Informativo -->
+      <v-alert
+        density="comfortable"
+        type="info"
+        variant="tonal"
+        color="#07254A"
+        class="mb-6 rounded-xl border text-caption"
+      >
+        <div class="d-flex align-center">
+          <v-icon icon="mdi-information-outline" color="#07254A" class="mr-2" size="20"></v-icon>
+          <div>
+            Realiza tu depósito o transferencia SPEI a la <strong>cuenta fiscal oficial</strong> para que contabilidad genere tu factura (CFDI) y valide tu orden sin contratiempos.
+          </div>
+        </div>
+      </v-alert>
+
+      <!-- Tarjeta Única: Cuenta Fiscal Oficial -->
+      <v-row dense justify="center">
+        <v-col cols="12" md="8" lg="7">
+          <v-card flat class="account-card pa-6 rounded-xl border bg-white">
+            <div class="d-flex align-center justify-space-between mb-4">
+              <v-chip
+                size="small"
+                color="#07254A"
+                variant="flat"
+                class="font-weight-bold text-white px-3"
+              >
+                <v-icon start icon="mdi-receipt-text-check-outline" size="16"></v-icon>
+                Cuenta Fiscal (Con Facturación)
+              </v-chip>
+              <span class="text-caption font-weight-bold text-slate-500 font-mono">
+                Transferencia SPEI
+              </span>
+            </div>
+
+            <div class="mb-3">
+              <span class="label-caption">INSTITUCIÓN BANCARIA</span>
+              <div class="text-h6 font-weight-bold text-slate-900">BBVA México</div>
+            </div>
+
+            <div class="mb-3">
+              <span class="label-caption">BENEFICIARIO / RAZÓN SOCIAL</span>
+              <div class="text-body-1 font-weight-bold text-slate-800">
+                Ópalo Certificados de Confianza S.A. de C.V.
               </div>
             </div>
-          </div>
 
-          <!-- Skeleton Loader -->
-          <v-card-text v-if="loading" class="pa-4 pa-sm-6">
-            <v-skeleton-loader type="article, article"></v-skeleton-loader>
-          </v-card-text>
+            <div class="mb-4">
+              <span class="label-caption">RFC RECEPTOR FISCAL</span>
+              <div class="text-body-2 font-mono font-weight-bold text-slate-800">
+                OPC200415AB3
+              </div>
+            </div>
 
-          <!-- Detalle de Cuentas -->
-          <v-card-text v-else class="pa-3 pa-sm-6">
-            <v-alert
-              density="compact"
-              variant="tonal"
-              color="#07254A"
-              icon="mdi-information-outline"
-              class="mb-4 mb-sm-6 rounded-lg alert-text"
-            >
-              Si tu empresa requiere <strong>Factura (CFDI)</strong>, realiza tu depósito a la cuenta fiscal para que contabilidad genere tu comprobante sin contratiempos.
-            </v-alert>
+            <!-- Bloque Destacado de CLABE con Copiado Rápido -->
+            <div class="clabe-box pa-4 rounded-xl border mb-4 bg-slate-50 d-flex flex-wrap align-center justify-space-between gap-2">
+              <div>
+                <span class="label-caption text-slate-600">CLABE INTERBANCARIA (18 DÍGITOS)</span>
+                <div class="text-h6 font-mono font-weight-bold text-primary mt-1">
+                  {{ clabeInterbancaria }}
+                </div>
+              </div>
 
-            <v-row dense>
-              <!-- 1. CUENTA FISCAL -->
-              <v-col cols="12" md="6" class="mb-3 mb-md-0">
-                <v-card variant="outlined" class="account-box h-100 rounded-lg pa-4 pa-sm-5">
-                  <div class="d-flex flex-wrap align-center justify-space-between gap-2 mb-3">
-                    <v-chip color="#07254A" variant="flat" size="x-small" class="font-weight-bold text-white px-2 py-1">
-                      <v-icon icon="mdi-receipt-text-check" start size="14"></v-icon>
-                      Con Facturación (Fiscal)
-                    </v-chip>
-                    <span class="text-caption text-grey-darken-1 font-weight-medium">Transferencia SPEI</span>
-                  </div>
+              <v-btn
+                variant="flat"
+                color="#07254A"
+                size="small"
+                rounded="lg"
+                prepend-icon="mdi-content-copy"
+                class="text-none font-weight-bold text-white px-3"
+                @click="copyToClipboard(clabeInterbancaria, 'CLABE interbancaria')"
+              >
+                Copiar
+              </v-btn>
+            </div>
 
-                  <div v-if="accounts.fiscal" class="account-details">
-                    <div class="detail-item mb-2">
-                      <span class="detail-label">Institución Bancaria</span>
-                      <div class="detail-value text-slate-800 font-weight-bold text-body-2">
-                        {{ accounts.fiscal.bank_name }}
-                      </div>
-                    </div>
+            <!-- Número de Cuenta -->
+            <div class="d-flex align-center justify-space-between border-top pt-3">
+              <div>
+                <span class="label-caption">NO. DE CUENTA</span>
+                <div class="text-body-1 font-mono font-weight-bold text-slate-800">
+                  {{ numeroCuenta }}
+                </div>
+              </div>
 
-                    <div class="detail-item mb-2">
-                      <span class="detail-label">Beneficiario / Razón Social</span>
-                      <div class="detail-value text-slate-800 font-weight-bold text-caption text-sm-body-2">
-                        {{ accounts.fiscal.beneficiary }}
-                      </div>
-                    </div>
-
-                    <div class="detail-item mb-2">
-                      <span class="detail-label">RFC Receptor Fiscal</span>
-                      <div class="detail-value font-mono text-slate-800 font-weight-bold text-caption">
-                        {{ accounts.fiscal.rfc || 'No especificado' }}
-                      </div>
-                    </div>
-
-                    <div class="detail-item clabe-highlight pa-3 rounded-lg mt-3 mb-2">
-                      <span class="detail-label">CLABE Interbancaria (18 dígitos)</span>
-                      <div class="d-flex flex-column flex-xs-row flex-sm-row align-start align-sm-center justify-space-between gap-2 mt-1">
-                        <span class="clabe-number font-mono font-weight-bold text-slate-900">
-                          {{ accounts.fiscal.clabe }}
-                        </span>
-                        <v-btn
-                          size="x-small"
-                          variant="tonal"
-                          color="#07254A"
-                          prepend-icon="mdi-content-copy"
-                          class="text-none font-weight-bold copy-btn"
-                          @click="copyToClipboard(accounts.fiscal.clabe, 'CLABE Fiscal copiada')"
-                        >
-                          Copiar
-                        </v-btn>
-                      </div>
-                    </div>
-
-                    <div v-if="accounts.fiscal.account_number" class="detail-item mt-2">
-                      <span class="detail-label">No. de Cuenta</span>
-                      <div class="detail-value text-caption font-mono text-slate-700">
-                        {{ accounts.fiscal.account_number }}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div v-else class="text-center py-6 text-grey text-caption">
-                    Información bancaria fiscal pendiente de configuración.
-                  </div>
-                </v-card>
-              </v-col>
-
-              <!-- 2. CUENTA NO FISCAL -->
-              <v-col cols="12" md="6">
-                <v-card variant="outlined" class="account-box h-100 rounded-lg pa-4 pa-sm-5">
-                  <div class="d-flex flex-wrap align-center justify-space-between gap-2 mb-3">
-                    <v-chip color="#475569" variant="flat" size="x-small" class="font-weight-bold text-white px-2 py-1">
-                      <v-icon icon="mdi-cash-fast" start size="14"></v-icon>
-                      Sin Factura (Operativa)
-                    </v-chip>
-                    <span class="text-caption text-grey-darken-1 font-weight-medium">Transferencia SPEI</span>
-                  </div>
-
-                  <div v-if="accounts.non_fiscal" class="account-details">
-                    <div class="detail-item mb-2">
-                      <span class="detail-label">Institución Bancaria</span>
-                      <div class="detail-value text-slate-800 font-weight-bold text-body-2">
-                        {{ accounts.non_fiscal.bank_name }}
-                      </div>
-                    </div>
-
-                    <div class="detail-item mb-2">
-                      <span class="detail-label">Beneficiario Titular</span>
-                      <div class="detail-value text-slate-800 font-weight-bold text-caption text-sm-body-2">
-                        {{ accounts.non_fiscal.beneficiary }}
-                      </div>
-                    </div>
-
-                    <div class="detail-item clabe-highlight pa-3 rounded-lg mt-3 mb-2">
-                      <span class="detail-label">CLABE Interbancaria (18 dígitos)</span>
-                      <div class="d-flex flex-column flex-xs-row flex-sm-row align-start align-sm-center justify-space-between gap-2 mt-1">
-                        <span class="clabe-number font-mono font-weight-bold text-slate-900">
-                          {{ accounts.non_fiscal.clabe }}
-                        </span>
-                        <v-btn
-                          size="x-small"
-                          variant="tonal"
-                          color="#475569"
-                          prepend-icon="mdi-content-copy"
-                          class="text-none font-weight-bold copy-btn"
-                          @click="copyToClipboard(accounts.non_fiscal.clabe, 'CLABE Operativa copiada')"
-                        >
-                          Copiar
-                        </v-btn>
-                      </div>
-                    </div>
-
-                    <div v-if="accounts.non_fiscal.account_number" class="detail-item mt-2">
-                      <span class="detail-label">No. de Tarjeta / Cuenta</span>
-                      <div class="detail-value text-caption font-mono text-slate-700">
-                        {{ accounts.non_fiscal.account_number }}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div v-else class="text-center py-6 text-grey text-caption">
-                    Información bancaria operativa pendiente de configuración.
-                  </div>
-                </v-card>
-              </v-col>
-            </v-row>
-          </v-card-text>
-        </v-card>
-      </v-col>
-    </v-row>
+              <v-btn
+                variant="outlined"
+                color="#07254A"
+                size="x-small"
+                rounded="lg"
+                prepend-icon="mdi-content-copy"
+                class="text-none font-weight-bold"
+                @click="copyToClipboard(numeroCuenta, 'Número de cuenta')"
+              >
+                Copiar Cuenta
+              </v-btn>
+            </div>
+          </v-card>
+        </v-col>
+      </v-row>
+    </v-card-text>
 
     <!-- Snackbar de Copiado -->
-    <v-snackbar v-model="snackbar.show" color="#07254A" location="bottom center" timeout="2000">
+    <v-snackbar v-model="snackbar.show" :color="snackbar.color" location="top right" timeout="2500">
       {{ snackbar.text }}
     </v-snackbar>
-  </v-container>
+  </v-card>
 </template>
 
 <script>
-import api from '@/services/api';
-
 export default {
   name: 'ClientPaymentInfoComponent',
   data() {
     return {
-      loading: true,
-      accounts: { fiscal: null, non_fiscal: null },
-      snackbar: { show: false, text: '' },
+      clabeInterbancaria: '012320001155998842',
+      numeroCuenta: '0115599884',
+      snackbar: {
+        show: false,
+        text: '',
+        color: 'success',
+      },
     };
   },
-  async mounted() {
-    await this.fetchAccounts();
-  },
   methods: {
-    async fetchAccounts() {
-      this.loading = true;
+    async copyToClipboard(text, label = 'Dato') {
       try {
-        const response = await api.get('/settings/bank-accounts');
-        this.accounts = response.data || { fiscal: null, non_fiscal: null };
-      } catch (error) {
-        console.error('Error cargando cuentas bancarias:', error);
-      } finally {
-        this.loading = false;
-      }
-    },
-    copyToClipboard(text, message) {
-      if (!text) return;
-      navigator.clipboard.writeText(text).then(() => {
-        this.snackbar.text = message;
+        await navigator.clipboard.writeText(text);
+        this.snackbar.text = `${label} copiado al portapapeles.`;
+        this.snackbar.color = 'success';
         this.snackbar.show = true;
-      });
+      } catch (err) {
+        this.snackbar.text = 'No se pudo copiar automáticamente.';
+        this.snackbar.color = 'error';
+        this.snackbar.show = true;
+      }
     },
   },
 };
 </script>
 
 <style scoped>
-.max-content-wrapper {
-  max-width: 1200px;
-  margin: 0 auto;
-}
-.main-payment-card {
+.payment-info-card {
   background: #ffffff !important;
   border: 1px solid #e2e8f0 !important;
-  border-radius: 12px !important;
+  border-radius: 16px !important;
   overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
 }
-.opaloBrand {
+
+.card-header {
   background: linear-gradient(135deg, #07254A 0%, #0e1726 100%) !important;
 }
+
 .header-icon-box {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
   background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
 }
+
 .card-title {
-  font-size: 0.95rem;
+  font-size: 1.15rem;
   font-weight: 700;
-  line-height: 1.25;
+  letter-spacing: -0.2px;
 }
-@media (min-width: 600px) {
-  .card-title { font-size: 1.1rem; }
-}
+
 .card-subtitle {
-  font-size: 0.72rem;
-  line-height: 1.3;
+  font-size: 0.8rem;
 }
-.alert-text {
-  font-size: 0.76rem !important;
-  line-height: 1.4;
+
+.account-card {
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
-.account-box {
-  border: 1px solid #e2e8f0 !important;
-  background-color: #ffffff;
-}
-.detail-label {
+
+.label-caption {
   display: block;
-  font-size: 0.68rem;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
+  font-size: 0.72rem;
   font-weight: 700;
   color: #64748b;
+  letter-spacing: 0.3px;
   margin-bottom: 2px;
 }
-.clabe-highlight {
+
+.clabe-box {
   background-color: #f8fafc;
   border: 1px dashed #cbd5e1;
 }
-.clabe-number {
-  font-size: 0.95rem;
-  letter-spacing: 0.5px;
-  word-break: break-all;
+
+.bg-slate-50 {
+  background-color: #f8fafc;
 }
-@media (min-width: 600px) {
-  .clabe-number {
-    font-size: 1.05rem;
-    letter-spacing: 1px;
-  }
-}
-.copy-btn {
-  height: 26px !important;
-  font-size: 0.72rem !important;
-  border-radius: 6px !important;
-}
-.font-mono {
-  font-family: monospace;
-}
+
 .gap-2 {
   gap: 8px;
 }

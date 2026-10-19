@@ -77,7 +77,7 @@
                     {{ item.full_name }}
                   </div>
                   <div class="badge-curp text-caption font-mono mt-1">
-                    {{ item.curp }}
+                    {{ item.curp || 'SIN CURP' }}
                   </div>
                 </div>
               </div>
@@ -183,15 +183,14 @@
 </template>
 
 <script>
-import api from '@/services/api';
+import { mapState, mapActions } from 'pinia';
+import { useExamineesStore } from '@/store/examinees';
 
 export default {
   name: 'ExamineeListComponent',
   emits: ['open-dossier'],
   data() {
     return {
-      examinees: [],
-      loading: false,
       dt: {
         search: '',
         headers: [
@@ -205,31 +204,16 @@ export default {
     };
   },
 
+  computed: {
+    ...mapState(useExamineesStore, ['examinees', 'loading']),
+  },
+
   mounted() {
     this.fetchExaminees();
   },
 
   methods: {
-    async fetchExaminees() {
-      this.loading = true;
-      try {
-        const res = await api.get('/portal/examinees');
-        this.examinees = res.data || [];
-      } catch (e) {
-        console.error('Error cargando candidatos:', e);
-      } finally {
-        this.loading = false;
-      }
-    },
-
-    addExamineeToTop(examinee) {
-      if (examinee && examinee.id) {
-        const exists = this.examinees.some((e) => e.id === examinee.id);
-        if (!exists) {
-          this.examinees.unshift(examinee);
-        }
-      }
-    },
+    ...mapActions(useExamineesStore, ['fetchExaminees']),
 
     getInitials(name) {
       if (!name) return 'EX';

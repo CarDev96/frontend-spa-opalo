@@ -18,8 +18,20 @@ export const useExamineesStore = defineStore('examinees', {
     async fetchExaminees() {
       this.loading = true;
       try {
-        const response = await api.get('/portal/examinees/list');
-        this.examinees = response.data || [];
+        // Soporta tanto /portal/examinees/list como /portal/examinees
+        let response;
+        try {
+          response = await api.get('/portal/examinees/list');
+        } catch (err) {
+          if (err.response?.status === 404) {
+            response = await api.get('/portal/examinees');
+          } else {
+            throw err;
+          }
+        }
+
+        const data = response.data?.data || response.data || [];
+        this.examinees = Array.isArray(data) ? data : [];
         return this.examinees;
       } catch (error) {
         console.error('Error al cargar evaluados:', error);
@@ -32,13 +44,35 @@ export const useExamineesStore = defineStore('examinees', {
     async addExaminee(payload) {
       this.saving = true;
       try {
-        const response = await api.post('/portal/examinees/store', payload);
-        if (response.data?.examinee) {
-          this.examinees.unshift(response.data.examinee);
+        let response;
+        try {
+          response = await api.post('/portal/examinees/store', payload);
+        } catch (err) {
+          if (err.response?.status === 404) {
+            response = await api.post('/portal/examinees', payload);
+          } else {
+            throw err;
+          }
+        }
+
+        const newExaminee = response.data?.examinee || response.data?.data;
+
+        if (newExaminee) {
+          // Asignar status por defecto si no viene del back para mantener consistencia reactiva
+          if (!newExaminee.status) {
+            newExaminee.status = 'registered';
+          }
+          // Crear un nuevo array para garantizar que Vuetify detecte la mutación reactiva
+          this.examinees = [newExaminee, ...this.examinees];
         } else {
           await this.fetchExaminees();
         }
-        return { success: true, message: response.data.message };
+
+        return {
+          success: true,
+          message: response.data?.message || 'Evaluado registrado exitosamente.',
+          examinee: newExaminee,
+        };
       } catch (error) {
         const message = error.response?.data?.message || 'Error al registrar evaluado.';
         return { success: false, message, errors: error.response?.data?.errors };
@@ -51,7 +85,7 @@ export const useExamineesStore = defineStore('examinees', {
       try {
         const response = await api.delete(`/portal/examinees/${id}`);
         this.examinees = this.examinees.filter((e) => e.id !== id);
-        return { success: true, message: response.data.message };
+        return { success: true, message: response.data?.message || 'Evaluado eliminado exitosamente.' };
       } catch (error) {
         const message = error.response?.data?.message || 'Error al eliminar evaluado.';
         return { success: false, message };

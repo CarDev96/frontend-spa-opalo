@@ -4,48 +4,14 @@
     <psychology-dashboard-component v-if="userRole === 'psychology'" />
 
     <!-- 2. Perfil de Administrador (Placeholder mientras armamos sus KPIs) -->
-    <div v-else-if="userRole === 'pi'" class="admin-dashboard-placeholder">
+    <div v-else-if="userRole === 'admin'" class="admin-dashboard-placeholder">
       <!-- Puedes mostrar el panel clínico también si es admin o su resumen general -->
-      <psychology-dashboard-component />
+      <admin-dashboard-component />
     </div>
 
     <!-- 3. Perfil de Cliente / Empresas -->
     <div v-else-if="userRole === 'client'" class="client-dashboard-placeholder">
-      <v-card flat class="pa-8 text-center rounded-xl border-subtle elevation-0 bg-white">
-        <v-avatar size="56" color="#f8fafc" class="mb-3 empty-avatar">
-          <v-icon size="28" color="#07254A">mdi-domain</v-icon>
-        </v-avatar>
-        <div class="text-subtitle-1 font-weight-bold text-slate-900">
-          Bienvenido a tu Portal Empresarial Ópalo
-        </div>
-        <div class="text-caption text-slate-500 mb-4">
-          Gestiona tus candidatos, consulta el avance de pruebas y programa nuevas citas de evaluación.
-        </div>
-        <div class="d-flex justify-center gap-3">
-          <v-btn
-            color="#07254A"
-            variant="flat"
-            size="small"
-            rounded="lg"
-            prepend-icon="mdi-calendar-plus"
-            class="text-none font-weight-bold text-white px-4"
-            @click="$router.push('/portal/appointments')"
-          >
-            Agendar Cita
-          </v-btn>
-          <v-btn
-            color="#07254A"
-            variant="outlined"
-            size="small"
-            rounded="lg"
-            prepend-icon="mdi-account-group-outline"
-            class="text-none font-weight-bold px-4"
-            @click="$router.push('/portal/examinees')"
-          >
-            Mis Evaluados
-          </v-btn>
-        </div>
-      </v-card>
+			<dashboard-client-component />
     </div>
 
     <!-- 4. Default / Otros Roles (Ventas, Trabajo Social) -->
@@ -69,11 +35,15 @@
 import { mapState } from 'pinia';
 import { useAuthStore } from '@/store/auth';
 import PsychologyDashboardComponent from '@/components/clinical/dashboard/PsychologyDashboardComponent.vue';
+import AdminDashboardComponent from '@/components/admin/dashboard/AdminDashboardComponent.vue';
+import DashboardClientComponent from '@/components/home/DashboardClientComponent.vue';
 
 export default {
   name: 'HomeView',
   components: {
     PsychologyDashboardComponent,
+    DashboardClientComponent,
+		AdminDashboardComponent,
   },
   computed: {
     ...mapState(useAuthStore, ['user']),

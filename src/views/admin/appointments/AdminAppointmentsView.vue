@@ -1,22 +1,17 @@
 <template>
   <div class="admin-appointments-container px-0 py-2">
-    <!-- Formulario de Agendamiento de Administración -->
-    <admin-book-appointment-component @appointment-created="refreshList" />
-
     <!-- Tabla de Citas Generales de Evaluación -->
-    <appointment-list-component ref="listComponent" class="mt-4" />
+    <admin-appointment-list-component ref="listComponent" class="mt-4" />
   </div>
 </template>
 
 <script>
-import AdminBookAppointmentComponent from '@/components/admin/appointments/AdminBookAppointmentComponent.vue';
-import AppointmentListComponent from '@/components/admin/appointments/AppointmentListComponent.vue';
+import AdminAppointmentListComponent from '@/components/admin/appointments/AdminAppointmentListComponent.vue';
 
 export default {
   name: 'AdminAppointmentsView',
   components: {
-    AdminBookAppointmentComponent,
-    AppointmentListComponent,
+    AdminAppointmentListComponent,
   },
   methods: {
     refreshList() {

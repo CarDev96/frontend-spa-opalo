@@ -1,5 +1,5 @@
 <template>
-	<v-card flat class="timeline-card elevation-0">
+	<v-card flat class="timeline-table-card elevation-0">
 		<!-- Header Corporativo Ópalo -->
 		<div class="card-table-header px-6 py-4 d-flex align-center justify-space-between flex-wrap gap-2">
 			<div class="d-flex align-center">
@@ -7,194 +7,403 @@
 					<v-icon icon="mdi-calendar-clock-outline" color="#ffffff" size="20"></v-icon>
 				</div>
 				<div>
-					<h2 class="card-title text-white mb-0">Citas de Evaluación Asignadas</h2>
+					<h2 class="card-title text-white mb-0">Agenda y Control de Evaluaciones</h2>
 					<span class="card-subtitle text-white opacity-80">
-						Control de candidatos citados, atención de pruebas y contacto por WhatsApp
+						Atención de citas clínicas, contacto por WhatsApp y dictamen de resultados
 					</span>
 				</div>
 			</div>
 
 			<div class="d-flex align-center gap-2">
-				<v-btn variant="flat" size="small" color="#ffffff" prepend-icon="mdi-refresh"
-					class="text-none font-weight-bold reload-btn" :loading="loading" @click="fetchAppointments()">
+				<v-btn
+					variant="flat"
+					size="small"
+					color="#ffffff"
+					prepend-icon="mdi-refresh"
+					class="text-none font-weight-bold reload-btn"
+					:loading="loading"
+					@click="loadAppointments"
+				>
 					Recargar
 				</v-btn>
 			</div>
 		</div>
 
-		<!-- Barra de Filtros Rápidos y Contadores -->
-		<div
-			class="filter-toolbar px-6 py-3 border-bottom bg-slate-50 d-flex flex-wrap align-center justify-space-between gap-3">
-			<v-btn-toggle v-model="selectedTimeframe" mandatory rounded="lg" density="compact" color="#07254A"
-				class="filter-toggle" @update:model-value="onTimeframeChange">
-				<v-btn value="today" class="text-none font-weight-bold px-4">
-					<v-icon icon="mdi-calendar-today" start size="16"></v-icon>
-					Citas de Hoy
-				</v-btn>
-				<v-btn value="week" class="text-none font-weight-bold px-4">
-					<v-icon icon="mdi-calendar-range" start size="16"></v-icon>
-					Esta Semana
-				</v-btn>
-				<v-btn value="all" class="text-none font-weight-bold px-4">
-					<v-icon icon="mdi-history" start size="16"></v-icon>
-					Historial Completo
-				</v-btn>
-			</v-btn-toggle>
+		<!-- Toolbar: Selector de Filtro en Lista + Métricas -->
+		<div class="filter-toolbar px-6 py-3 border-bottom bg-slate-50 d-flex flex-wrap align-center justify-space-between gap-3">
+			<div class="d-flex align-center gap-2" style="min-width: 320px;">
+				<v-icon icon="mdi-filter-variant" size="20" color="#07254A"></v-icon>
+				<span class="text-caption font-weight-bold text-slate-700">Mostrar:</span>
+				<v-select
+					v-model="selectedView"
+					:items="viewOptions"
+					item-title="title"
+					item-value="value"
+					density="compact"
+					variant="outlined"
+					hide-details
+					rounded="lg"
+					bg-color="#ffffff"
+					color="#07254A"
+					class="view-select font-weight-bold"
+				></v-select>
+			</div>
 
-			<div class="d-flex align-center gap-2">
+			<!-- Badges de conteo calculados reactivamente -->
+			<div class="d-flex align-center gap-2 flex-wrap">
 				<v-chip size="small" variant="flat" color="#e2e8f0" class="font-weight-bold text-slate-700">
-					Total: {{ totalCount }}
+					Total: {{ allAppointments.length }}
 				</v-chip>
 				<v-chip size="small" variant="flat" color="#dbeafe" class="font-weight-bold text-blue-900">
-					Pendientes: {{ scheduledCount }}
+					Pendientes: {{ countScheduled }}
 				</v-chip>
 				<v-chip size="small" variant="flat" color="#d1fae5" class="font-weight-bold text-emerald-900">
-					Atendidas: {{ attendedCount }}
+					En espera de resultados: {{ countAttended }}
 				</v-chip>
 			</div>
 		</div>
 
-		<!-- Contenedor Principal de Citas -->
-		<v-card-text class="pa-4 pa-sm-6 bg-slate-50">
-			<div v-if="loading" class="text-center py-12">
-				<v-progress-circular indeterminate color="#07254A" size="36"></v-progress-circular>
-				<div class="text-caption text-slate-500 mt-2 font-weight-medium">Cargando evaluaciones...</div>
-			</div>
+		<!-- Barra de Búsqueda -->
+		<div class="table-search-bar px-6 py-3 border-bottom bg-white">
+			<v-row dense align="center">
+				<v-col cols="12" sm="8" md="5">
+					<v-text-field
+						v-model="search"
+						placeholder="Buscar por candidato, CURP, empresa o prueba..."
+						prepend-inner-icon="mdi-magnify"
+						variant="outlined"
+						density="compact"
+						hide-details
+						clearable
+						rounded="lg"
+						bg-color="#ffffff"
+						color="#07254A"
+						class="search-input"
+					></v-text-field>
+				</v-col>
+			</v-row>
+		</div>
 
-			<div v-else-if="appointments.length === 0" class="text-center py-12">
-				<v-avatar size="64" color="#f8fafc" class="mb-3 empty-avatar">
-					<v-icon size="32" color="#07254A">mdi-calendar-blank-outline</v-icon>
-				</v-avatar>
-				<div class="text-subtitle-1 font-weight-bold text-slate-800">No hay citas en este periodo</div>
-				<div class="text-caption text-grey">
-					Las citas programadas por los clientes aparecerán automáticamente aquí.
-				</div>
-			</div>
-
-			<!-- Listado de Tarjetas -->
-			<div v-else class="d-flex flex-column gap-3">
-				<div v-for="item in appointments" :key="item.id"
-					class="appointment-card pa-4 rounded-xl d-flex flex-wrap align-center justify-space-between gap-3 cursor-pointer transition-all"
-					@click="openDrawer(item)">
-					<!-- 1. Bloque de Horario -->
-					<div class="schedule-block d-flex align-center pr-sm-4 border-sm-right">
-						<div class="time-badge px-3 py-2 rounded-lg text-center">
-							<div class="text-caption font-weight-bold text-slate-500 text-uppercase">
+		<!-- Data Table Oficial Ópalo -->
+		<v-card-text class="pa-0">
+			<v-data-table
+				v-model:page="page"
+				v-model:items-per-page="itemsPerPage"
+				class="custom-opalo-table"
+				:headers="headers"
+				:items="filteredAppointments"
+				:search="search"
+				:loading="loading"
+				hover
+				density="comfortable"
+				mobile-breakpoint="0"
+			>
+				<!-- Fila Sincronizada -->
+				<template v-slot:item="{ item }">
+					<tr class="table-row">
+						<!-- 1. Horario y Fecha -->
+						<td class="py-3">
+							<div class="font-weight-bold text-slate-900">
 								{{ formatSafeDate(item.date) }}
 							</div>
-							<div class="font-mono text-body-1 font-weight-black text-slate-900">
-								{{ formatHour(item.start_time) }}
+							<div class="text-caption font-mono text-slate-500">
+								{{ formatHour(item.start_time) }} - {{ formatHour(item.end_time) }}
 							</div>
-							<div class="text-caption font-mono text-grey">
-								{{ formatHour(item.end_time) }}
-							</div>
-						</div>
-					</div>
+						</td>
 
-					<!-- 2. Información del Candidato -->
-					<div class="candidate-block flex-grow-1 min-w-0">
-						<div class="d-flex align-center gap-2 mb-1">
-							<span class="font-weight-bold text-slate-900 text-body-1 text-truncate">
+						<!-- 2. Candidato / Evaluado -->
+						<td>
+							<div class="font-weight-bold text-slate-800">
 								{{ item.examinee?.full_name || 'Candidato sin nombre' }}
-							</span>
-							<v-chip size="x-small" :color="item.modality === 'presencial' ? '#07254A' : '#0d9488'" variant="flat"
-								class="font-weight-bold text-uppercase text-white">
-								{{ item.modality }}
-							</v-chip>
-						</div>
-
-						<div class="d-flex flex-wrap align-center text-caption text-slate-600 gap-x-4 gap-y-1">
-							<div>
-								<v-icon icon="mdi-briefcase-outline" size="14" class="mr-1 text-slate-400"></v-icon>
-								<span>{{ item.examinee?.position }}</span>
 							</div>
-							<div>
-								<v-icon icon="mdi-domain" size="14" class="mr-1 text-slate-400"></v-icon>
-								<span class="font-weight-medium text-slate-800">
-									{{ item.client?.trade_name || item.client?.company_name }}
+							<div class="text-caption text-slate-500 font-mono">
+								{{ item.examinee?.curp || item.examinee?.position || 'Sin cargo' }}
+							</div>
+						</td>
+
+						<!-- 3. Empresa Solicitante -->
+						<td>
+							<div class="text-body-2 font-weight-medium text-slate-800">
+								{{ item.client?.trade_name || item.client?.company_name || 'N/A' }}
+							</div>
+						</td>
+
+						<!-- 4. Evaluación y Modalidad -->
+						<td>
+							<div class="d-flex align-center gap-1 flex-wrap">
+								<span class="text-caption font-weight-bold text-slate-700">
+									{{ item.evaluation_type?.name || 'Evaluación' }}
 								</span>
+								<v-chip
+									size="x-small"
+									:color="item.modality === 'presencial' ? '#07254A' : '#0d9488'"
+									variant="flat"
+									class="font-weight-bold text-uppercase text-white ml-1"
+								>
+									{{ item.modality || 'Presencial' }}
+								</v-chip>
 							</div>
-							<div>
-								<v-icon icon="mdi-clipboard-text-outline" size="14" class="mr-1 text-slate-400"></v-icon>
-								<span>{{ item.evaluation_type?.name }}</span>
+						</td>
+
+						<!-- 5. Estatus -->
+						<td class="text-center">
+							<v-chip
+								size="small"
+								:color="getStatusColor(item.status)"
+								variant="flat"
+								class="font-weight-bold text-white status-chip"
+							>
+								{{ formatStatus(item.status) }}
+							</v-chip>
+						</td>
+
+						<!-- 6. Acciones -->
+						<td class="text-end pr-4">
+							<div class="d-flex align-center justify-end gap-2" @click.stop>
+								<!-- Botón WhatsApp -->
+								<v-tooltip text="Contactar por WhatsApp" location="top">
+									<template #activator="{ props }">
+										<v-btn
+											v-bind="props"
+											color="#25D366"
+											variant="flat"
+											size="small"
+											rounded="lg"
+											icon="mdi-whatsapp"
+											class="text-white whatsapp-btn"
+											:disabled="!item.examinee?.phone"
+											@click="openWhatsApp(item)"
+										></v-btn>
+									</template>
+								</v-tooltip>
+
+								<!-- Botón Atender Cita / Ver Sesión -->
+								<v-btn
+									size="small"
+									variant="flat"
+									color="#07254A"
+									rounded="lg"
+									prepend-icon="mdi-clipboard-check-outline"
+									class="text-none font-weight-bold text-white"
+									@click="openDrawer(item)"
+								>
+									{{ item.status === 'attended' ? 'Ver Sesión' : 'Atender Cita' }}
+								</v-btn>
 							</div>
+						</td>
+					</tr>
+				</template>
+
+				<!-- Sin datos -->
+				<template v-slot:no-data>
+					<div class="py-10 text-center">
+						<v-avatar size="64" color="#f8fafc" class="mb-3 empty-avatar">
+							<v-icon size="32" color="#07254A">mdi-calendar-blank-outline</v-icon>
+						</v-avatar>
+						<div class="text-subtitle-1 font-weight-bold text-slate-800">
+							No hay citas para mostrar en este filtro
+						</div>
+						<div class="text-caption text-grey">
+							Selecciona otra opción en la lista superior o recarga la agenda.
 						</div>
 					</div>
+				</template>
 
-					<!-- 3. Acciones de Atención Inmediata -->
-					<div class="action-block d-flex align-center gap-2 flex-shrink-0" @click.stop>
-						<v-chip size="small" :color="getStatusColor(item.status)" variant="flat"
-							class="font-weight-bold status-chip text-white">
-							{{ formatStatus(item.status) }}
-						</v-chip>
+				<!-- Footer en Español Nativo -->
+				<template v-slot:bottom="{ pageCount }">
+					<div class="d-flex align-center justify-end px-4 py-2 border-top gap-3 flex-wrap bg-white custom-footer">
+						<div class="d-flex align-center gap-2">
+							<span class="text-caption text-slate-600 font-weight-medium">Filas por página:</span>
+							<v-select
+								v-model="itemsPerPage"
+								:items="[5, 10, 25, 50]"
+								density="compact"
+								variant="outlined"
+								hide-details
+								class="footer-select"
+							></v-select>
+						</div>
 
-						<!-- Botón WhatsApp -->
-						<v-btn color="#25D366" variant="flat" size="small" rounded="lg" prepend-icon="mdi-whatsapp"
-							class="text-none font-weight-bold text-white px-3 whatsapp-btn" :disabled="!item.examinee?.phone"
-							@click="openWhatsApp(item)">
-							WhatsApp
-						</v-btn>
+						<span class="text-caption text-slate-600 font-weight-medium">
+							{{ paginationText }}
+						</span>
 
-						<v-btn icon="mdi-chevron-right" variant="text" size="small" color="#07254A"
-							@click="openDrawer(item)"></v-btn>
+						<div class="d-flex align-center">
+							<v-btn
+								icon="mdi-page-first"
+								variant="text"
+								size="small"
+								density="comfortable"
+								:disabled="page <= 1"
+								@click="page = 1"
+							></v-btn>
+							<v-btn
+								icon="mdi-chevron-left"
+								variant="text"
+								size="small"
+								density="comfortable"
+								:disabled="page <= 1"
+								@click="page--"
+							></v-btn>
+							<v-btn
+								icon="mdi-chevron-right"
+								variant="text"
+								size="small"
+								density="comfortable"
+								:disabled="page >= pageCount"
+								@click="page++"
+							></v-btn>
+							<v-btn
+								icon="mdi-page-last"
+								variant="text"
+								size="small"
+								density="comfortable"
+								:disabled="page >= pageCount"
+								@click="page = pageCount"
+							></v-btn>
+						</div>
 					</div>
-				</div>
-			</div>
+				</template>
+			</v-data-table>
 		</v-card-text>
 	</v-card>
 </template>
 
 <script>
-import { mapState, mapActions } from 'pinia';
+import { mapActions } from 'pinia';
 import { useClinicalAppointmentsStore } from '@/store/clinicalAppointments';
+import api from '@/services/api';
 
 export default {
 	name: 'AppointmentsTimelineComponent',
 	data() {
 		return {
-			selectedTimeframe: 'today',
+			loading: false,
+			allAppointments: [],
+			selectedView: 'all', // De inicio muestra todas completas
+			search: '',
+			page: 1,
+			itemsPerPage: 10,
+			viewOptions: [
+				{ title: 'Todas las Citas (Historial Completo)', value: 'all' },
+				{ title: 'Citas de Esta Semana', value: 'week' },
+				{ title: 'Citas Próximas (Por Atender)', value: 'upcoming' },
+				{ title: 'Solo Pendientes (Programadas)', value: 'scheduled' },
+				{ title: 'En Espera de Resultados (Completadas)', value: 'attended' },
+			],
+			headers: [
+				{ title: 'Fecha y Horario', key: 'date', align: 'start' },
+				{ title: 'Candidato / Evaluado', key: 'examinee.full_name', align: 'start' },
+				{ title: 'Empresa Cliente', key: 'client.trade_name', align: 'start' },
+				{ title: 'Evaluación y Modalidad', key: 'evaluation_type.name', align: 'start', sortable: false },
+				{ title: 'Estatus', key: 'status', align: 'center' },
+				{ title: 'Acciones', key: 'actions', align: 'end', sortable: false },
+			],
 		};
 	},
 
 	computed: {
-		...mapState(useClinicalAppointmentsStore, [
-			'appointments',
-			'loading',
-			'totalCount',
-			'scheduledCount',
-			'attendedCount',
-		]),
+		filteredAppointments() {
+			if (!Array.isArray(this.allAppointments)) return [];
+
+			const today = new Date();
+			const todayStr = today.toISOString().substring(0, 10);
+
+			switch (this.selectedView) {
+				case 'week': {
+					const current = new Date();
+					const day = current.getDay();
+					const diff = current.getDate() - day + (day === 0 ? -6 : 1);
+					const monday = new Date(current.setDate(diff));
+					const sunday = new Date(current.setDate(monday.getDate() + 6));
+
+					const start = monday.toISOString().substring(0, 10);
+					const end = sunday.toISOString().substring(0, 10);
+
+					return this.allAppointments.filter((a) => {
+						const d = a.date ? a.date.substring(0, 10) : '';
+						return d >= start && d <= end;
+					});
+				}
+				case 'upcoming': {
+					return this.allAppointments.filter((a) => {
+						const d = a.date ? a.date.substring(0, 10) : '';
+						return d >= todayStr && a.status === 'scheduled';
+					});
+				}
+				case 'scheduled': {
+					return this.allAppointments.filter((a) => a.status === 'scheduled');
+				}
+				case 'attended': {
+					return this.allAppointments.filter((a) => a.status === 'attended');
+				}
+				case 'all':
+				default:
+					return this.allAppointments;
+			}
+		},
+
+		countScheduled() {
+			return this.allAppointments.filter((a) => a.status === 'scheduled').length;
+		},
+
+		countAttended() {
+			return this.allAppointments.filter((a) => a.status === 'attended').length;
+		},
+
+		paginationText() {
+			const total = this.filteredAppointments.length;
+			if (total === 0) return '0 de 0';
+			const start = (this.page - 1) * this.itemsPerPage + 1;
+			const end = Math.min(this.page * this.itemsPerPage, total);
+			return `${start}-${end} de ${total}`;
+		},
 	},
 
 	mounted() {
-		this.fetchAppointments('today');
+		this.loadAppointments();
 	},
 
 	methods: {
-		...mapActions(useClinicalAppointmentsStore, [
-			'fetchAppointments',
-			'openDrawer',
-		]),
+		...mapActions(useClinicalAppointmentsStore, ['openDrawer']),
 
-		onTimeframeChange(val) {
-			if (val) {
-				this.fetchAppointments(val);
+		async loadAppointments() {
+			this.loading = true;
+			try {
+				// Usa la ruta oficial pasando timeframe=all
+				const response = await api.get('/clinical/appointments/list', {
+					params: { timeframe: 'all' },
+				});
+				const res = response.data;
+
+				if (Array.isArray(res)) {
+					this.allAppointments = res;
+				} else if (res && Array.isArray(res.data)) {
+					this.allAppointments = res.data;
+				} else {
+					this.allAppointments = [];
+				}
+			} catch (error) {
+				console.error('Error al extraer citas:', error);
+				this.allAppointments = [];
+			} finally {
+				this.loading = false;
 			}
 		},
 
 		formatSafeDate(dateVal) {
-			if (!dateVal) return '';
+			if (!dateVal) return 'Sin fecha';
 			const cleanDate = typeof dateVal === 'string' ? dateVal.substring(0, 10) : '';
 			const parts = cleanDate.split('-');
 			if (parts.length === 3) {
 				const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
-				return d.toLocaleDateString('es-MX', { weekday: 'short', day: '2-digit', month: 'short' });
+				return d.toLocaleDateString('es-MX', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
 			}
 			return cleanDate;
 		},
 
 		formatHour(hourStr) {
-			if (!hourStr) return '';
+			if (!hourStr) return '--:--';
 			return hourStr.substring(0, 5);
 		},
 
@@ -210,8 +419,8 @@ export default {
 
 		formatStatus(status) {
 			const map = {
-				scheduled: 'Programada',
-				attended: 'Atendida',
+				scheduled: 'Programada (Pendiente)',
+				attended: 'Completada (En espera de resultados)',
 				cancelled: 'Cancelada',
 				no_show: 'No asistió',
 			};
@@ -228,15 +437,14 @@ export default {
 				`Hola ${candidateName}, te contacto del área de Evaluación Psicológica de Ópalo. Me comunico contigo para dar inicio a tu sesión programada a las ${time}.`
 			);
 
-			const url = `https://wa.me/52${cleanPhone}?text=${message}`;
-			window.open(url, '_blank');
+			window.open(`https://wa.me/52${cleanPhone}?text=${message}`, '_blank');
 		},
 	},
 };
 </script>
 
 <style scoped>
-.timeline-card {
+.timeline-table-card {
 	background: #ffffff !important;
 	border: 1px solid #e2e8f0 !important;
 	border-radius: 14px !important;
@@ -249,11 +457,10 @@ export default {
 }
 
 .header-icon-box {
-	width: 40px;
-	height: 40px;
+	width: 38px;
+	height: 38px;
 	border-radius: 10px;
 	background: rgba(255, 255, 255, 0.12);
-	border: 1px solid rgba(255, 255, 255, 0.2);
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -272,7 +479,6 @@ export default {
 .reload-btn {
 	color: #07254A !important;
 	border-radius: 8px !important;
-	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
 }
 
 .filter-toolbar {
@@ -283,30 +489,39 @@ export default {
 	background-color: #f8fafc;
 }
 
-.appointment-card {
-	background: #ffffff;
-	border: 1px solid #e2e8f0;
-	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+.view-select {
+	max-width: 340px;
 }
 
-.appointment-card:hover {
-	border-color: #cbd5e1;
-	box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.07);
+:deep(.view-select .v-field) {
+	border-radius: 8px !important;
+	font-size: 0.82rem !important;
+	min-height: 36px !important;
+	height: 36px !important;
 }
 
-.time-badge {
-	background: #f1f5f9;
-	min-width: 95px;
+:deep(.view-select .v-field__input) {
+	padding-top: 6px !important;
+	padding-bottom: 6px !important;
 }
 
-.border-sm-right {
-	border-right: 1px dashed #cbd5e1;
+.table-search-bar {
+	border-bottom: 1px solid #e2e8f0;
+}
+
+:deep(.search-input .v-field) {
+	border-radius: 8px !important;
+	font-size: 0.84rem !important;
+}
+
+.table-row:hover {
+	background-color: #f8fafc;
 }
 
 .status-chip {
 	padding: 0 10px !important;
 	height: 24px !important;
-	font-size: 0.75rem !important;
+	font-size: 0.72rem !important;
 }
 
 .whatsapp-btn {
@@ -317,23 +532,27 @@ export default {
 	border: 1px solid #e2e8f0;
 }
 
-.cursor-pointer {
-	cursor: pointer;
+.footer-select {
+	width: 80px;
 }
 
-.gap-2 {
-	gap: 8px;
+:deep(.footer-select .v-field) {
+	border-radius: 6px !important;
+	font-size: 0.78rem !important;
+	min-height: 32px !important;
+	height: 32px !important;
 }
 
-.gap-3 {
-	gap: 12px;
+:deep(.footer-select .v-field__input) {
+	padding-top: 4px !important;
+	padding-bottom: 4px !important;
 }
 
-.gap-x-4 {
-	column-gap: 16px;
+.custom-footer {
+	border-top: 1px solid #e2e8f0;
 }
 
-.gap-y-1 {
-	row-gap: 4px;
-}
+.gap-1 { gap: 4px; }
+.gap-2 { gap: 8px; }
+.gap-3 { gap: 12px; }
 </style>

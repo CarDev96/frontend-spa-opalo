@@ -9,7 +9,7 @@
         <div>
           <h2 class="card-title text-white mb-0">Expediente Digital del Evaluado</h2>
           <span class="card-subtitle text-white opacity-80">
-            {{ candidateName }} • Documentación legal, cartas laborales y referencias
+            {{ candidateName }} • Documentación legal, cartas laborales, referencias y psicometría
           </span>
         </div>
       </div>
@@ -45,6 +45,10 @@
         <v-icon start icon="mdi-account-multiple-check-outline"></v-icon>
         3. Referencias Personales (3)
       </v-tab>
+      <v-tab value="psychometrics" class="text-none font-weight-bold">
+        <v-icon start icon="mdi-file-document-edit-outline"></v-icon>
+        4. Pruebas Psicométricas Contestadas
+      </v-tab>
     </v-tabs>
 
     <v-window v-model="activeTab" class="bg-slate-50 pa-6">
@@ -52,7 +56,6 @@
       <!-- PESTAÑA 1: DOCUMENTOS + CARTAS LABORALES   -->
       <!-- ========================================== -->
       <v-window-item value="documents">
-        <!-- 1.1 Documentos Individuales -->
         <div class="d-flex align-center justify-space-between mb-3">
           <div>
             <h3 class="text-subtitle-1 font-weight-bold text-slate-800 mb-0">Documentación Oficial del Candidato</h3>
@@ -87,7 +90,6 @@
                   {{ slot.desc }}
                 </div>
 
-                <!-- Preview -->
                 <div v-if="docs[slot.type]?.file_url" class="preview-container mb-3">
                   <div
                     v-if="isPdf(docs[slot.type])"
@@ -112,7 +114,6 @@
                   </div>
                 </div>
 
-                <!-- Alerta Rechazo -->
                 <v-alert
                   v-if="docs[slot.type]?.status === 'rejected'"
                   type="error"
@@ -125,7 +126,6 @@
                 </v-alert>
               </div>
 
-              <!-- Input File -->
               <div>
                 <input
                   type="file"
@@ -158,8 +158,7 @@
         <div class="d-flex align-center justify-space-between mb-3">
           <div>
             <div class="d-flex align-center gap-2">
-              <h3 class="text-subtitle-1 font-weight-bold text-slate-800 mb-0">Cartas Laborales (Ultimos 5 años)</h3>
-
+              <h3 class="text-subtitle-1 font-weight-bold text-slate-800 mb-0">Cartas Laborales (Últimos 5 años)</h3>
             </div>
             <p class="text-caption text-slate-500 mb-0">
               Adjunta constancias laborales o cartas de recomendación membretadas de empleos anteriores (PDF o imagen).
@@ -189,7 +188,6 @@
           </div>
         </div>
 
-        <!-- Alerta si faltan cartas -->
         <v-alert
           v-if="laborLetters.length < 2"
           type="warning"
@@ -200,7 +198,6 @@
           En caso de no contar con cartas laborales, proporcionar contacto de empleadores
         </v-alert>
 
-        <!-- Grid de Cartas Laborales Subidas -->
         <v-row dense>
           <v-col cols="12" sm="6" md="4" lg="3" v-for="(letter, index) in laborLetters" :key="letter.id" class="pa-2">
             <v-card flat class="slot-card pa-4 d-flex flex-column justify-space-between">
@@ -223,7 +220,6 @@
                   {{ letter.original_name }}
                 </div>
 
-                <!-- Preview de la carta -->
                 <div class="preview-container mb-3">
                   <div
                     v-if="isPdf(letter)"
@@ -239,7 +235,6 @@
                   </div>
                 </div>
 
-                <!-- Motivo si fue rechazada -->
                 <v-alert
                   v-if="letter.status === 'rejected'"
                   type="error"
@@ -252,7 +247,6 @@
                 </v-alert>
               </div>
 
-              <!-- Botones de Acción: Ver y Eliminar -->
               <div class="d-flex gap-2">
                 <v-btn
                   variant="outlined"
@@ -360,7 +354,7 @@
       </v-window-item>
 
       <!-- ========================================== -->
-      <!-- PESTAÑA 3: 3 REFERENCIAS PERSONALES         -->
+      <!-- PESTAÑA 3: REFERENCIAS PERSONALES (3)      -->
       <!-- ========================================== -->
       <v-window-item value="references">
         <div class="d-flex align-center justify-space-between mb-4">
@@ -467,6 +461,132 @@
           </div>
         </v-form>
       </v-window-item>
+
+      <!-- ========================================== -->
+      <!-- PESTAÑA 4: PRUEBAS PSICOMÉTRICAS           -->
+      <!-- ========================================== -->
+      <v-window-item value="psychometrics">
+        <div class="d-flex align-center justify-space-between mb-3">
+          <div>
+            <h3 class="text-subtitle-1 font-weight-bold text-slate-800 mb-0">Pruebas Psicométricas Contestadas</h3>
+            <p class="text-caption text-slate-500 mb-0">
+              Adjunta las pruebas resueltas por el candidato para revisión por parte del equipo evaluador.
+            </p>
+          </div>
+          <span class="text-caption font-weight-bold text-slate-600 font-mono">
+            {{ psychometricTests.length }} Pruebas en Catálogo
+          </span>
+        </div>
+
+        <div v-if="loadingPsychometrics" class="py-10 text-center">
+          <v-progress-circular indeterminate color="#07254A" size="32"></v-progress-circular>
+          <div class="text-caption text-slate-500 mt-2">Cargando catálogo de pruebas...</div>
+        </div>
+
+        <div v-else-if="psychometricTests.length === 0" class="py-10 text-center text-slate-500 bg-white rounded-xl border">
+          <v-icon icon="mdi-file-document-outline" size="40" class="text-slate-300 mb-2"></v-icon>
+          <div class="text-body-2 font-weight-medium">No hay pruebas psicométricas disponibles para cargar.</div>
+        </div>
+
+        <v-row v-else dense>
+          <v-col
+            cols="12"
+            sm="6"
+            md="4"
+            lg="3"
+            v-for="test in psychometricTests"
+            :key="test.test_id"
+            class="pa-2"
+          >
+            <v-card flat class="slot-card pa-4 d-flex flex-column justify-space-between">
+              <div>
+                <div class="d-flex align-center justify-space-between mb-2">
+                  <span class="slot-name font-weight-bold text-slate-800 text-truncate" :title="test.name">
+                    {{ test.name }}
+                  </span>
+                  <v-chip
+                    v-if="test.file_url"
+                    size="x-small"
+                    :color="getStatusColor(test.status)"
+                    variant="flat"
+                    class="font-weight-bold text-white status-chip"
+                  >
+                    {{ formatStatus(test.status) }}
+                  </v-chip>
+                  <v-chip v-else size="x-small" color="grey" variant="flat" class="text-white status-chip">
+                    Pendiente
+                  </v-chip>
+                </div>
+
+                <div class="slot-hint text-caption text-grey mb-3 text-truncate" :title="test.description">
+                  {{ test.description || 'Formato resuelto por el aspirante.' }}
+                </div>
+
+                <!-- Preview del archivo -->
+                <div v-if="test.file_url" class="preview-container mb-3">
+                  <div
+                    v-if="isPdf(test)"
+                    class="pdf-preview-box pa-3 text-center d-flex flex-column align-center justify-center cursor-pointer"
+                    @click="openFile(test.file_url)"
+                  >
+                    <v-icon icon="mdi-file-pdf-box" color="#EF4444" size="38" class="mb-1"></v-icon>
+                    <span class="text-caption text-slate-700 text-truncate max-w-full font-weight-semibold">
+                      {{ test.original_name || 'Prueba Contestada' }}
+                    </span>
+                    <span class="text-caption text-primary font-weight-bold mt-1">Ver Archivo</span>
+                  </div>
+
+                  <div v-else class="cursor-pointer" @click="openFile(test.file_url)">
+                    <v-img :src="test.file_url" aspect-ratio="1.4" cover class="rounded-lg">
+                      <template v-slot:placeholder>
+                        <div class="d-flex align-center justify-center fill-height bg-slate-100">
+                          <v-progress-circular indeterminate color="#07254A" size="20"></v-progress-circular>
+                        </div>
+                      </template>
+                    </v-img>
+                  </div>
+                </div>
+
+                <!-- Alerta si fue rechazada -->
+                <v-alert
+                  v-if="test.status === 'rejected'"
+                  type="error"
+                  density="compact"
+                  variant="tonal"
+                  class="mb-3 text-caption pa-2"
+                >
+                  <strong>Motivo de rechazo:</strong>
+                  <div>{{ test.rejection_reason || 'Documento ilegible o incompleto.' }}</div>
+                </v-alert>
+              </div>
+
+              <!-- Input y Botón Cargar / Reemplazar -->
+              <div>
+                <input
+                  type="file"
+                  :ref="'file_test_' + test.test_id"
+                  class="d-none"
+                  accept="application/pdf,image/jpeg,image/png,image/webp,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                  @change="onPsychometricFileChange($event, test.test_id)"
+                />
+                <v-btn
+                  block
+                  variant="outlined"
+                  size="small"
+                  color="#07254A"
+                  rounded="lg"
+                  :prepend-icon="test.file_url ? 'mdi-file-replace-outline' : 'mdi-file-upload-outline'"
+                  class="text-none font-weight-bold"
+                  :loading="uploadingSlot === 'test_' + test.test_id"
+                  @click="$refs['file_test_' + test.test_id][0].click()"
+                >
+                  {{ test.file_url ? 'Reemplazar Archivo' : 'Cargar Documento' }}
+                </v-btn>
+              </div>
+            </v-card>
+          </v-col>
+        </v-row>
+      </v-window-item>
     </v-window>
 
     <v-snackbar v-model="snackbar.show" :color="snackbar.color" location="top right" timeout="3000">
@@ -490,6 +610,8 @@ export default {
       activeTab: 'documents',
       docs: {},
       laborLetters: [],
+      psychometricTests: [],
+      loadingPsychometrics: false,
       references: [
         { full_name: '', relationship: '', phone: '', years_known: '', occupation: '' },
         { full_name: '', relationship: '', phone: '', years_known: '', occupation: '' },
@@ -526,12 +648,14 @@ export default {
 
   computed: {
     totalUploadedCount() {
-      return Object.keys(this.docs).length + this.laborLetters.length;
+      const psychUploaded = this.psychometricTests.filter((t) => !!t.file_url).length;
+      return Object.keys(this.docs).length + this.laborLetters.length + psychUploaded;
     },
   },
 
   mounted() {
     this.fetchData();
+    this.fetchPsychometrics();
   },
 
   methods: {
@@ -561,11 +685,24 @@ export default {
       }
     },
 
+    async fetchPsychometrics() {
+      this.loadingPsychometrics = true;
+      try {
+        const res = await api.get(`/portal/examinees/${this.examineeId}/psychometric-tests`);
+        this.psychometricTests = res.data?.data || [];
+      } catch (e) {
+        console.error('Error cargando pruebas psicométricas:', e);
+      } finally {
+        this.loadingPsychometrics = false;
+      }
+    },
+
     isPdf(doc) {
       if (!doc) return false;
       if (doc.mime_type && doc.mime_type.includes('pdf')) return true;
       if (doc.file_path && doc.file_path.toLowerCase().endsWith('.pdf')) return true;
       if (doc.original_name && doc.original_name.toLowerCase().endsWith('.pdf')) return true;
+      if (doc.file_url && doc.file_url.toLowerCase().includes('.pdf')) return true;
       return false;
     },
 
@@ -629,6 +766,34 @@ export default {
       }
     },
 
+    async onPsychometricFileChange(event, testId) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      this.uploadingSlot = 'test_' + testId;
+      try {
+        const res = await api.post(
+          `/portal/examinees/${this.examineeId}/psychometric-tests/${testId}/upload`,
+          formData,
+          { headers: { 'Content-Type': 'multipart/form-data' } }
+        );
+        this.notify(res.data?.message || 'Prueba psicométrica subida exitosamente.');
+        await this.fetchPsychometrics();
+      } catch (e) {
+        const serverError =
+          e.response?.data?.errors?.file?.[0] ||
+          e.response?.data?.message ||
+          'Error al subir la prueba psicométrica.';
+        this.notify(serverError, 'error');
+      } finally {
+        this.uploadingSlot = null;
+        if (event.target) event.target.value = '';
+      }
+    },
+
     async deleteLaborLetter(id) {
       this.deletingDocId = id;
       try {
@@ -669,7 +834,7 @@ export default {
         approved: '#10B981',
         rejected: '#EF4444',
       };
-      return map[status] || '#475569';
+      return map[status] || '#64748B';
     },
 
     formatStatus(status) {

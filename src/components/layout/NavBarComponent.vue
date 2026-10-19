@@ -6,9 +6,9 @@
         <v-icon icon="mdi-menu" size="22"></v-icon>
       </v-btn>
       <div class="d-flex align-center">
-        <span class="font-weight-black text-h6 text-slate-800 tracking-wider">ÓPALO</span>
+        <span class="font-weight-black text-h6 text-slate-800 tracking-wider">GCD Opalo certificaciones</span>
         <span class="text-caption text-grey ml-2 pl-2 border-left d-none d-sm-inline">
-          Certificados de Confianza
+          Control de Confianza
         </span>
       </div>
     </div>

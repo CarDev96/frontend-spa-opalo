@@ -52,9 +52,11 @@
       </v-row>
     </div>
 
-    <!-- Data Table con v-slot:item para alinear columnas perfectamente -->
+    <!-- Data Table -->
     <v-card-text class="pa-0">
       <v-data-table
+        v-model:page="page"
+        v-model:items-per-page="itemsPerPage"
         class="custom-opalo-table"
         :headers="dt.headers"
         :items="clients"
@@ -64,7 +66,7 @@
         density="comfortable"
         mobile-breakpoint="0"
       >
-        <!-- RENDERIZADO DE FILA SINCRONIZADA -->
+        <!-- RENDERIZADO DE FILA -->
         <template v-slot:item="{ item }">
           <tr class="table-row">
             <!-- 1. Empresa / Razón Social -->
@@ -96,14 +98,40 @@
               </div>
             </td>
 
-            <!-- 4. Régimen Fiscal -->
-            <td>
-              <span class="regime-text">
-                {{ formatRegime(item.fiscal_regime) }}
+            <!-- 4. Constancia de Situación Fiscal (S3 via ClientFiscalDocument) -->
+            <td class="text-center">
+              <v-btn
+                v-if="getCsfUrl(item)"
+                variant="tonal"
+                size="small"
+                color="error"
+                rounded="lg"
+                prepend-icon="mdi-file-pdf-box"
+                class="text-none font-weight-bold px-3 csf-btn"
+                @click="openPdf(getCsfUrl(item))"
+              >
+                Ver CSF
+              </v-btn>
+              <span v-else class="text-caption text-grey-darken-1 font-italic">
+                Sin CSF
               </span>
             </td>
 
-            <!-- 5. Estatus -->
+            <!-- 5. O.C. Requerida -->
+            <td class="text-center">
+              <v-chip
+                size="x-small"
+                :color="item.requires_purchase_order ? '#D97706' : 'grey-lighten-2'"
+                :variant="item.requires_purchase_order ? 'flat' : 'outlined'"
+                class="font-weight-bold"
+                :class="{ 'text-white': item.requires_purchase_order }"
+              >
+                <v-icon start size="12" :icon="item.requires_purchase_order ? 'mdi-file-check' : 'mdi-minus'"></v-icon>
+                {{ item.requires_purchase_order ? 'PO Obligatoria' : 'No' }}
+              </v-chip>
+            </td>
+
+            <!-- 6. Estatus -->
             <td class="text-center">
               <v-chip
                 size="small"
@@ -116,7 +144,7 @@
               </v-chip>
             </td>
 
-            <!-- 6. Acciones -->
+            <!-- 7. Acciones -->
             <td class="text-end pr-4">
               <div class="d-flex align-center justify-end gap-1">
                 <v-tooltip :text="!item.is_active ? 'Reactivar acceso' : 'Suspender acceso'" location="top">
@@ -169,6 +197,62 @@
             </div>
           </div>
         </template>
+
+        <!-- FOOTER PERSONALIZADO EN ESPAÑOL SIN DEPENDER DE $VUETIFY -->
+        <template v-slot:bottom="{ pageCount }">
+          <div class="d-flex align-center justify-end px-4 py-2 border-top gap-3 flex-wrap bg-white custom-footer">
+            <div class="d-flex align-center gap-2">
+              <span class="text-caption text-slate-600 font-weight-medium">Filas por página:</span>
+              <v-select
+                v-model="itemsPerPage"
+                :items="[5, 10, 25, 50]"
+                density="compact"
+                variant="outlined"
+                hide-details
+                class="footer-select"
+              ></v-select>
+            </div>
+
+            <span class="text-caption text-slate-600 font-weight-medium">
+              {{ paginationText }}
+            </span>
+
+            <div class="d-flex align-center">
+              <v-btn
+                icon="mdi-page-first"
+                variant="text"
+                size="small"
+                density="comfortable"
+                :disabled="page <= 1"
+                @click="page = 1"
+              ></v-btn>
+              <v-btn
+                icon="mdi-chevron-left"
+                variant="text"
+                size="small"
+                density="comfortable"
+                :disabled="page <= 1"
+                @click="page--"
+              ></v-btn>
+              <v-btn
+                icon="mdi-chevron-right"
+                variant="text"
+                size="small"
+                density="comfortable"
+                :disabled="page >= pageCount"
+                @click="page++"
+              ></v-btn>
+              <v-btn
+                icon="mdi-page-last"
+                variant="text"
+                size="small"
+                density="comfortable"
+                :disabled="page >= pageCount"
+                @click="page = pageCount"
+              ></v-btn>
+            </div>
+          </div>
+        </template>
       </v-data-table>
     </v-card-text>
 
@@ -187,13 +271,16 @@ export default {
   name: 'ClientListComponent',
   data() {
     return {
+      page: 1,
+      itemsPerPage: 10,
       dt: {
         search: '',
         headers: [
           { title: 'Empresa / Razón Social', key: 'company_name', align: 'start' },
           { title: 'RFC', key: 'rfc', align: 'start', sortable: false },
           { title: 'Contacto / Login', key: 'contact_email', align: 'start' },
-          { title: 'Régimen Fiscal', key: 'fiscal_regime', align: 'start' },
+          { title: 'Constancia Fiscal (CSF)', key: 'fiscal_document', align: 'center', sortable: false },
+          { title: 'O.C. Requerida', key: 'requires_purchase_order', align: 'center', sortable: false },
           { title: 'Estatus', key: 'is_active', align: 'center' },
           { title: 'Acciones', key: 'actions', align: 'end', sortable: false },
         ],
@@ -204,6 +291,14 @@ export default {
 
   computed: {
     ...mapState(useClientsStore, ['clients', 'loading']),
+
+    paginationText() {
+      const total = this.clients.length;
+      if (total === 0) return '0 de 0';
+      const start = (this.page - 1) * this.itemsPerPage + 1;
+      const end = Math.min(this.page * this.itemsPerPage, total);
+      return `${start}-${end} de ${total}`;
+    },
   },
 
   mounted() {
@@ -211,7 +306,7 @@ export default {
   },
 
   methods: {
-    ...mapActions(useClientsStore, ['fetchClients']),
+    ...mapActions(useClientsStore, ['fetchClients', 'toggleClientStatus', 'destroyClient']),
 
     notify(text, color = 'success') {
       this.snackbar.text = text;
@@ -228,18 +323,39 @@ export default {
       }
     },
 
-    formatRegime(regime) {
-      if (!regime) return 'Sin especificar';
-      return regime.length > 35 ? `${regime.substring(0, 35)}...` : regime;
+    getCsfUrl(item) {
+      if (!item) return null;
+
+      if (item.fiscal_document?.file_url) {
+        return item.fiscal_document.file_url;
+      }
+
+      if (Array.isArray(item.fiscal_documents) && item.fiscal_documents.length > 0) {
+        return item.fiscal_documents[0].file_url;
+      }
+
+      if (item.file_url) {
+        return item.file_url;
+      }
+
+      return null;
+    },
+
+    openPdf(url) {
+      if (url) {
+        window.open(url, '_blank');
+      }
     },
 
     async toggleStatus(item) {
-      const newStatus = !item.is_active;
       try {
-        item.is_active = newStatus;
-        this.notify(`Estatus de ${item.trade_name || item.company_name} actualizado.`);
+        const res = await this.toggleClientStatus(item.id);
+        if (res.success) {
+          this.notify(res.message);
+        } else {
+          this.notify(res.message, 'error');
+        }
       } catch (e) {
-        item.is_active = !newStatus;
         this.notify('Error al actualizar el estatus.', 'error');
       }
     },
@@ -248,11 +364,15 @@ export default {
       const confirmed = confirm('¿Deseas eliminar esta empresa del directorio?');
       if (!confirmed) return;
 
-      const store = useClientsStore();
-      const index = store.clients.findIndex((c) => c.id === id);
-      if (index !== -1) {
-        store.clients.splice(index, 1);
-        this.notify('Empresa eliminada del directorio.');
+      try {
+        const res = await this.destroyClient(id);
+        if (res.success) {
+          this.notify(res.message);
+        } else {
+          this.notify(res.message, 'error');
+        }
+      } catch (e) {
+        this.notify('Error al eliminar la empresa.', 'error');
       }
     },
   },
@@ -324,9 +444,9 @@ export default {
   border: 1px solid #e2e8f0;
 }
 
-.regime-text {
-  font-size: 0.78rem;
-  color: #475569;
+.csf-btn {
+  font-size: 0.74rem !important;
+  height: 28px !important;
 }
 
 .status-chip {
@@ -341,6 +461,26 @@ export default {
 
 .empty-avatar {
   border: 1px solid #e2e8f0;
+}
+
+.footer-select {
+  width: 80px;
+}
+
+:deep(.footer-select .v-field) {
+  border-radius: 6px !important;
+  font-size: 0.78rem !important;
+  min-height: 32px !important;
+  height: 32px !important;
+}
+
+:deep(.footer-select .v-field__input) {
+  padding-top: 4px !important;
+  padding-bottom: 4px !important;
+}
+
+.custom-footer {
+  border-top: 1px solid #e2e8f0;
 }
 
 .gap-1 { gap: 4px; }

@@ -7,9 +7,9 @@
           <v-icon icon="mdi-folder-check" color="#ffffff" size="20"></v-icon>
         </div>
         <div>
-          <h2 class="card-title text-white mb-0">Validación de Expedientes (Trabajo Social)</h2>
+          <h2 class="card-title text-white mb-0">Validación de Expedientes (Trabajo Social / Psicología)</h2>
           <span class="card-subtitle text-white opacity-80">
-            Revisión documental integral, fotografías y cotejo de referencias
+            Revisión documental integral, fotografías, cotejo de referencias y psicometría
           </span>
         </div>
       </div>
@@ -78,6 +78,13 @@
             <td class="text-center">
               <v-chip size="small" :color="getDocumentsBadgeColor(item.documents)" variant="flat" class="font-weight-bold text-white">
                 {{ item.documents?.length || 0 }} Documentos
+              </v-chip>
+            </td>
+
+            <!-- Contador de Pruebas Psicométricas -->
+            <td class="text-center">
+              <v-chip size="small" :color="getPsychometricsBadgeColor(getPsychometrics(item))" variant="flat" class="font-weight-bold text-white">
+                {{ getPsychometrics(item).length }} Psicométricas
               </v-chip>
             </td>
 
@@ -204,7 +211,7 @@
                     variant="flat"
                     color="error"
                     class="font-weight-bold"
-                    @click="promptReject(getDocument(slot.type))"
+                    @click="promptReject(getDocument(slot.type), 'doc')"
                   >
                     Rechazar
                   </v-btn>
@@ -300,7 +307,7 @@
                     variant="flat"
                     color="error"
                     class="font-weight-bold"
-                    @click="promptReject(letter)"
+                    @click="promptReject(letter, 'doc')"
                   >
                     Rechazar
                   </v-btn>
@@ -368,7 +375,7 @@
                     variant="flat"
                     color="error"
                     class="font-weight-bold"
-                    @click="promptReject(getDocument(slot.type))"
+                    @click="promptReject(getDocument(slot.type), 'doc')"
                   >
                     Rechazar
                   </v-btn>
@@ -387,7 +394,7 @@
             <span class="text-caption text-slate-500 font-weight-medium">3 Referencias</span>
           </div>
 
-          <v-row dense>
+          <v-row dense class="mb-5">
             <v-col cols="12" md="4" v-for="(ref, i) in selectedItem.references" :key="i" class="pa-2">
               <v-card flat class="pa-3 rounded-lg border bg-white">
                 <div class="font-weight-bold text-caption text-slate-900 mb-1">
@@ -413,21 +420,127 @@
               </v-card>
             </v-col>
           </v-row>
+
+          <!-- ========================================================= -->
+          <!-- 5. PRUEBAS PSICOMÉTRICAS CONTESTADAS                      -->
+          <!-- ========================================================= -->
+          <div class="d-flex align-center justify-space-between mb-3 border-bottom pb-2">
+            <div class="d-flex align-center gap-2">
+              <h4 class="text-subtitle-2 font-weight-bold text-slate-900 mb-0">
+                5. Pruebas Psicométricas Contestadas
+              </h4>
+              <v-chip
+                size="x-small"
+                color="#07254A"
+                variant="flat"
+                class="font-weight-bold text-white"
+              >
+                {{ getPsychometrics(selectedItem).length }} Prueba(s) Cargada(s)
+              </v-chip>
+            </div>
+          </div>
+
+          <v-row dense>
+            <v-col
+              v-if="getPsychometrics(selectedItem).length === 0"
+              cols="12"
+              class="text-caption text-grey py-3 text-center"
+            >
+              No se han cargado pruebas psicométricas contestadas para este candidato.
+            </v-col>
+            <v-col
+              v-else
+              cols="12"
+              sm="6"
+              md="4"
+              lg="3"
+              v-for="test in getPsychometrics(selectedItem)"
+              :key="test.id"
+              class="pa-2"
+            >
+              <v-card flat class="slot-audit-card pa-3">
+                <div class="d-flex align-center justify-space-between mb-2">
+                  <span class="font-weight-bold text-caption text-slate-800 text-truncate" :title="test.psychometric_test?.name || test.original_name">
+                    {{ test.psychometric_test?.name || 'Prueba Psicométrica' }}
+                  </span>
+                  <v-chip
+                    size="x-small"
+                    :color="getStatusColor(test.status)"
+                    variant="flat"
+                    class="font-weight-bold text-white status-chip"
+                  >
+                    {{ formatStatus(test.status) }}
+                  </v-chip>
+                </div>
+
+                <div class="slot-hint text-caption text-grey mb-2 text-truncate" :title="test.original_name">
+                  {{ test.original_name }}
+                </div>
+
+                <!-- Preview del Archivo Subido -->
+                <div v-if="test.file_url" class="img-box mb-2 cursor-pointer" @click="openFile(test.file_url)">
+                  <div v-if="isPdf(test)" class="pa-3 text-center bg-white d-flex flex-column align-center justify-center pdf-box">
+                    <v-icon icon="mdi-file-pdf-box" color="#EF4444" size="36"></v-icon>
+                    <span class="text-caption text-primary font-weight-bold mt-1">Abrir Formato</span>
+                  </div>
+                  <v-img v-else :src="test.file_url" aspect-ratio="1.3" cover class="rounded-lg"></v-img>
+                </div>
+
+                <!-- Alerta de Rechazo -->
+                <v-alert
+                  v-if="test.status === 'rejected'"
+                  type="error"
+                  density="compact"
+                  variant="tonal"
+                  class="mb-2 text-caption pa-1"
+                >
+                  <strong>Rechazo:</strong> {{ test.rejection_reason }}
+                </v-alert>
+
+                <!-- Botones Aprobar / Rechazar para Psicometría -->
+                <div class="d-flex gap-1 justify-center mt-2">
+                  <v-btn
+                    size="x-small"
+                    variant="flat"
+                    color="success"
+                    class="font-weight-bold"
+                    :disabled="test.status === 'approved'"
+                    :loading="processingTestId === test.id"
+                    @click="approvePsychometricTest(test)"
+                  >
+                    Aprobar
+                  </v-btn>
+                  <v-btn
+                    size="x-small"
+                    variant="flat"
+                    color="error"
+                    class="font-weight-bold"
+                    :loading="processingTestId === test.id"
+                    @click="promptReject(test, 'psychometric')"
+                  >
+                    Rechazar
+                  </v-btn>
+                </div>
+              </v-card>
+            </v-col>
+          </v-row>
         </v-card-text>
       </v-card>
     </v-dialog>
 
-    <!-- MODAL MOTIVO DE RECHAZO -->
-    <v-dialog v-model="rejectDialog" max-width="450px">
+    <!-- MODAL MOTIVO DE RECHAZO UNIFICADO -->
+    <v-dialog v-model="rejectDialog" max-width="450px" persistent>
       <v-card class="rounded-xl overflow-hidden bg-white pa-4">
-        <h4 class="text-subtitle-1 font-weight-bold text-slate-900 mb-2">Rechazar Documento</h4>
+        <h4 class="text-subtitle-1 font-weight-bold text-slate-900 mb-2">
+          {{ rejectType === 'psychometric' ? 'Rechazar Prueba Psicométrica' : 'Rechazar Documento' }}
+        </h4>
         <p class="text-caption text-slate-500 mb-3">
-          Ingresa el motivo puntual para que el cliente lo vea y vuelva a subir el archivo correcto.
+          Ingresa el motivo puntual. Se notificará por correo al cliente para que vuelva a subir el formato corregido.
         </p>
 
         <v-textarea
           v-model="rejectionReason"
-          placeholder="Ej. El archivo está borroso / No coincide la vigencia / Faltan sellos oficiales."
+          placeholder="Ej. Respuestas incompletas / Ilegible / Falta firma."
           variant="outlined"
           density="comfortable"
           rounded="lg"
@@ -436,10 +549,10 @@
         ></v-textarea>
 
         <div class="d-flex justify-end gap-2 mt-3">
-          <v-btn variant="outlined" color="grey" size="small" class="text-none font-weight-bold" @click="rejectDialog = false">
+          <v-btn variant="outlined" color="grey" size="small" class="text-none font-weight-bold" @click="rejectDialog = false" :disabled="submittingReject">
             Cancelar
           </v-btn>
-          <v-btn variant="flat" color="error" size="small" class="text-none font-weight-bold text-white" @click="confirmReject">
+          <v-btn variant="flat" color="error" size="small" class="text-none font-weight-bold text-white" :loading="submittingReject" @click="confirmReject">
             Confirmar Rechazo
           </v-btn>
         </div>
@@ -467,6 +580,7 @@ export default {
         { title: 'Candidato / Evaluado', key: 'full_name', align: 'start' },
         { title: 'Empresa Cliente', key: 'client.trade_name', align: 'start' },
         { title: 'Documentación Cargada', key: 'documents', align: 'center', sortable: false },
+        { title: 'Psicometría', key: 'psychometrics', align: 'center', sortable: false },
         { title: 'Referencias', key: 'references', align: 'center', sortable: false },
         { title: 'Acciones', key: 'actions', align: 'end', sortable: false },
       ],
@@ -474,9 +588,11 @@ export default {
       selectedItem: null,
       rejectDialog: false,
       rejectionReason: '',
-      targetDoc: null,
+      targetItem: null,
+      rejectType: 'doc',
+      submittingReject: false,
+      processingTestId: null,
 
-      // 9 Documentos Base Individuales
       officialDocSlots: [
         { type: 'birth_certificate', title: 'Acta de Nacimiento' },
         { type: 'rfc_document', title: 'RFC / Cédula Fiscal' },
@@ -489,7 +605,6 @@ export default {
         { type: 'drivers_license', title: 'Licencia de Conducir' },
       ],
 
-      // 4 Fotografías
       photoSlots: [
         { type: 'candidate_photo', title: 'Foto Rostro' },
         { type: 'house_facade', title: 'Fachada' },
@@ -517,6 +632,10 @@ export default {
       try {
         const res = await api.get('/social-work/dossiers/dt');
         this.dossiers = res.data || [];
+        if (this.selectedItem) {
+          const updated = this.dossiers.find(d => d.id === this.selectedItem.id);
+          if (updated) this.selectedItem = updated;
+        }
       } catch (e) {
         this.notify('Error al cargar expedientes.', 'error');
       } finally {
@@ -539,10 +658,22 @@ export default {
       return item.documents.filter((d) => d.document_type === 'labor_letters');
     },
 
+    getPsychometrics(item) {
+      if (!item) return [];
+      return item.psychometric_tests || item.psychometricTests || [];
+    },
+
     getDocumentsBadgeColor(docs) {
       if (!docs || docs.length === 0) return 'grey';
       if (docs.length >= 15) return 'success';
       return '#0284C7';
+    },
+
+    getPsychometricsBadgeColor(tests) {
+      if (!tests || tests.length === 0) return 'grey';
+      const allApproved = tests.every(t => t.status === 'approved');
+      if (allApproved) return 'success';
+      return '#07254A';
     },
 
     getStatusColor(status) {
@@ -568,6 +699,7 @@ export default {
       if (doc.mime_type && doc.mime_type.includes('pdf')) return true;
       if (doc.file_path && doc.file_path.toLowerCase().endsWith('.pdf')) return true;
       if (doc.original_name && doc.original_name.toLowerCase().endsWith('.pdf')) return true;
+      if (doc.file_url && doc.file_url.toLowerCase().includes('.pdf')) return true;
       return false;
     },
 
@@ -584,12 +716,28 @@ export default {
         doc.rejection_reason = null;
         this.notify('Documento aprobado correctamente.');
       } catch (e) {
-        this.notify('Error al aprobar.', 'error');
+        this.notify('Error al aprobar documento.', 'error');
       }
     },
 
-    promptReject(doc) {
-      this.targetDoc = doc;
+    async approvePsychometricTest(test) {
+      this.processingTestId = test.id;
+      try {
+        await api.patch(`/examinee-psychometric-tests/${test.id}/status`, { status: 'approved' });
+        test.status = 'approved';
+        test.rejection_reason = null;
+        this.notify('Prueba psicométrica aprobada y notificada por correo.');
+        await this.fetchDossiers();
+      } catch (e) {
+        this.notify(e.response?.data?.message || 'Error al aprobar prueba psicométrica.', 'error');
+      } finally {
+        this.processingTestId = null;
+      }
+    },
+
+    promptReject(item, type) {
+      this.targetItem = item;
+      this.rejectType = type;
       this.rejectionReason = '';
       this.rejectDialog = true;
     },
@@ -600,17 +748,31 @@ export default {
         return;
       }
 
+      this.submittingReject = true;
       try {
-        await api.patch(`/examinee-documents/${this.targetDoc.id}/status`, {
-          status: 'rejected',
-          rejection_reason: this.rejectionReason.trim(),
-        });
-        this.targetDoc.status = 'rejected';
-        this.targetDoc.rejection_reason = this.rejectionReason.trim();
+        if (this.rejectType === 'psychometric') {
+          await api.patch(`/examinee-psychometric-tests/${this.targetItem.id}/status`, {
+            status: 'rejected',
+            rejection_reason: this.rejectionReason.trim(),
+          });
+          this.targetItem.status = 'rejected';
+          this.targetItem.rejection_reason = this.rejectionReason.trim();
+          this.notify('Prueba rechazada y cliente notificado por correo.');
+        } else {
+          await api.patch(`/examinee-documents/${this.targetItem.id}/status`, {
+            status: 'rejected',
+            rejection_reason: this.rejectionReason.trim(),
+          });
+          this.targetItem.status = 'rejected';
+          this.targetItem.rejection_reason = this.rejectionReason.trim();
+          this.notify('Documento marcado como rechazado.');
+        }
         this.rejectDialog = false;
-        this.notify('Documento marcado como rechazado.');
+        await this.fetchDossiers();
       } catch (e) {
-        this.notify('Error al registrar rechazo.', 'error');
+        this.notify(e.response?.data?.message || 'Error al registrar rechazo.', 'error');
+      } finally {
+        this.submittingReject = false;
       }
     },
   },
@@ -668,6 +830,10 @@ export default {
   border-radius: 10px !important;
   background: #ffffff !important;
   height: 100%;
+}
+
+.slot-hint {
+  font-size: 0.72rem;
 }
 
 .img-box {
