@@ -163,7 +163,7 @@
             </v-card>
           </v-col>
 
-          <!-- BLOQUE 3: POLÍTICA DE ORDEN DE COMPRA (NUEVO) -->
+          <!-- BLOQUE 3: POLÍTICA DE ORDEN DE COMPRA -->
           <v-col cols="12" class="mb-2">
             <div class="section-indicator d-flex align-center mb-3">
               <span class="step-badge mr-2">3</span>
@@ -244,6 +244,8 @@ export default {
         { title: '601 - General de Ley Personas Morales', value: '601 - General de Ley Personas Morales' },
         { title: '603 - Personas Morales con Fines no Lucrativos', value: '603 - Personas Morales con Fines no Lucrativos' },
         { title: '612 - Personas Físicas con Actividades Empresariales y Profesionales', value: '612 - Personas Físicas con Actividades Empresariales y Profesionales' },
+        { title: '621 - Incorporación Fiscal', value: '621 - Incorporación Fiscal' },
+        { title: '624 - Coordinados', value: '624 - Coordinados' },
         { title: '626 - Régimen Simplificado de Confianza (RESICO)', value: '626 - Régimen Simplificado de Confianza (RESICO)' },
       ],
       r: {

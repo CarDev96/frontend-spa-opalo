@@ -85,8 +85,8 @@
                 <span class="badge-rfc font-mono">
                   {{ item.rfc }}
                 </span>
-                <span v-if="item.tax_regime" class="text-caption text-slate-500 mt-1 font-weight-medium">
-                  {{ item.tax_regime }}
+                <span v-if="item.fiscal_regime || item.tax_regime" class="text-caption text-slate-500 mt-1 font-weight-medium">
+                  {{ item.fiscal_regime || item.tax_regime }}
                 </span>
               </div>
             </td>
@@ -337,7 +337,7 @@
               <v-col cols="12">
                 <label class="form-label">Régimen Fiscal (SAT)</label>
                 <v-autocomplete
-                  v-model="editData.tax_regime"
+                  v-model="editData.fiscal_regime"
                   :items="taxRegimes"
                   variant="outlined"
                   density="comfortable"
@@ -450,7 +450,6 @@ export default {
           { title: 'Acciones', key: 'actions', align: 'end', sortable: false },
         ],
       },
-      // Estado para la edición
       editDialog: false,
       isFormValid: true,
       editId: null,
@@ -458,17 +457,17 @@ export default {
         company_name: '',
         trade_name: '',
         rfc: '',
-        tax_regime: null,
+        fiscal_regime: null,
         contact_email: '',
         contact_phone: '',
         requires_purchase_order: false,
       },
-      // Catálogo de regímenes fiscales comunes del SAT
       taxRegimes: [
         '601 - General de Ley Personas Morales',
         '603 - Personas Morales con Fines no Lucrativos',
         '612 - Personas Físicas con Actividades Empresariales y Profesionales',
         '621 - Incorporación Fiscal',
+        '624 - Coordinados',
         '626 - Régimen Simplificado de Confianza (RESICO)',
         '605 - Sueldos y Salarios e Ingresos Asimilados a Salarios',
         '606 - Arrendamiento',
@@ -517,7 +516,7 @@ export default {
         company_name: item.company_name || '',
         trade_name: item.trade_name || '',
         rfc: item.rfc || '',
-        tax_regime: item.tax_regime || item.fiscal_regime || null,
+        fiscal_regime: item.fiscal_regime || item.tax_regime || null,
         contact_email: item.contact_email || '',
         contact_phone: item.contact_phone || '',
         requires_purchase_order: Boolean(item.requires_purchase_order),
