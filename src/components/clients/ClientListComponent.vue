@@ -79,11 +79,16 @@
               </div>
             </td>
 
-            <!-- 2. RFC -->
+            <!-- 2. RFC y Régimen Fiscal -->
             <td>
-              <span class="badge-rfc font-mono">
-                {{ item.rfc }}
-              </span>
+              <div class="d-flex flex-column align-start">
+                <span class="badge-rfc font-mono">
+                  {{ item.rfc }}
+                </span>
+                <span v-if="item.tax_regime" class="text-caption text-slate-500 mt-1 font-weight-medium">
+                  {{ item.tax_regime }}
+                </span>
+              </div>
             </td>
 
             <!-- 3. Contacto / Login -->
@@ -98,7 +103,7 @@
               </div>
             </td>
 
-            <!-- 4. Constancia de Situación Fiscal (S3 via ClientFiscalDocument) -->
+            <!-- 4. Constancia de Situación Fiscal -->
             <td class="text-center">
               <v-btn
                 v-if="getCsfUrl(item)"
@@ -147,6 +152,24 @@
             <!-- 7. Acciones -->
             <td class="text-end pr-4">
               <div class="d-flex align-center justify-end gap-1">
+                <!-- Botón Editar -->
+                <v-tooltip text="Editar datos de empresa" location="top">
+                  <template #activator="{ props }">
+                    <v-btn
+                      v-bind="props"
+                      icon
+                      size="small"
+                      variant="tonal"
+                      color="primary"
+                      class="action-btn"
+                      @click="openEditDialog(item)"
+                    >
+                      <v-icon icon="mdi-pencil-outline" size="18"></v-icon>
+                    </v-btn>
+                  </template>
+                </v-tooltip>
+
+                <!-- Botón Estatus -->
                 <v-tooltip :text="!item.is_active ? 'Reactivar acceso' : 'Suspender acceso'" location="top">
                   <template #activator="{ props }">
                     <v-btn
@@ -163,6 +186,7 @@
                   </template>
                 </v-tooltip>
 
+                <!-- Botón Eliminar -->
                 <v-tooltip text="Eliminar empresa" location="top">
                   <template #activator="{ props }">
                     <v-btn
@@ -198,7 +222,7 @@
           </div>
         </template>
 
-        <!-- FOOTER PERSONALIZADO EN ESPAÑOL SIN DEPENDER DE $VUETIFY -->
+        <!-- Paginación -->
         <template v-slot:bottom="{ pageCount }">
           <div class="d-flex align-center justify-end px-4 py-2 border-top gap-3 flex-wrap bg-white custom-footer">
             <div class="d-flex align-center gap-2">
@@ -256,6 +280,147 @@
       </v-data-table>
     </v-card-text>
 
+    <!-- MODAL DE EDICIÓN CORPORATIVO ÓPALO -->
+    <v-dialog v-model="editDialog" max-width="680px" persistent>
+      <v-card class="edit-modal-card">
+        <div class="modal-header px-6 py-4 d-flex align-center justify-space-between">
+          <div class="d-flex align-center">
+            <v-icon icon="mdi-office-building-cog" color="#ffffff" size="22" class="mr-2"></v-icon>
+            <h3 class="text-subtitle-1 font-weight-bold text-white mb-0">Editar Empresa Cliente</h3>
+          </div>
+          <v-btn icon="mdi-close" variant="text" size="small" color="#ffffff" @click="editDialog = false"></v-btn>
+        </div>
+
+        <v-card-text class="pa-6">
+          <v-form ref="editForm" v-model="isFormValid" @submit.prevent="submitEdit">
+            <v-row dense>
+              <!-- Razón Social -->
+              <v-col cols="12">
+                <label class="form-label">Razón Social *</label>
+                <v-text-field
+                  v-model="editData.company_name"
+                  variant="outlined"
+                  density="comfortable"
+                  placeholder="Ej. Servicios Integrales S.A. de C.V."
+                  :rules="[v => !!v || 'La razón social es obligatoria']"
+                  color="#07254A"
+                ></v-text-field>
+              </v-col>
+
+              <!-- Nombre Comercial -->
+              <v-col cols="12" md="6">
+                <label class="form-label">Nombre Comercial</label>
+                <v-text-field
+                  v-model="editData.trade_name"
+                  variant="outlined"
+                  density="comfortable"
+                  placeholder="Ej. Ópalo Solutions"
+                  color="#07254A"
+                ></v-text-field>
+              </v-col>
+
+              <!-- RFC -->
+              <v-col cols="12" md="6">
+                <label class="form-label">RFC *</label>
+                <v-text-field
+                  v-model="editData.rfc"
+                  variant="outlined"
+                  density="comfortable"
+                  placeholder="Ej. SIS210410AA1"
+                  :rules="[v => !!v || 'El RFC es obligatorio']"
+                  color="#07254A"
+                  @input="editData.rfc = editData.rfc.toUpperCase()"
+                ></v-text-field>
+              </v-col>
+
+              <!-- Régimen Fiscal SAT -->
+              <v-col cols="12">
+                <label class="form-label">Régimen Fiscal (SAT)</label>
+                <v-autocomplete
+                  v-model="editData.tax_regime"
+                  :items="taxRegimes"
+                  variant="outlined"
+                  density="comfortable"
+                  placeholder="Selecciona el régimen fiscal..."
+                  color="#07254A"
+                  clearable
+                ></v-autocomplete>
+              </v-col>
+
+              <!-- Correo Electrónico (Login) -->
+              <v-col cols="12" md="6">
+                <label class="form-label">Correo de Contacto (Login) *</label>
+                <v-text-field
+                  v-model="editData.contact_email"
+                  type="email"
+                  variant="outlined"
+                  density="comfortable"
+                  placeholder="contacto@empresa.com"
+                  :rules="[
+                    v => !!v || 'El correo es obligatorio',
+                    v => /.+@.+\..+/.test(v) || 'Correo no válido'
+                  ]"
+                  color="#07254A"
+                ></v-text-field>
+              </v-col>
+
+              <!-- Teléfono -->
+              <v-col cols="12" md="6">
+                <label class="form-label">Teléfono de Contacto</label>
+                <v-text-field
+                  v-model="editData.contact_phone"
+                  variant="outlined"
+                  density="comfortable"
+                  placeholder="33 1234 5678"
+                  color="#07254A"
+                ></v-text-field>
+              </v-col>
+
+              <!-- Switch Orden de Compra -->
+              <v-col cols="12" class="mt-2">
+                <v-switch
+                  v-model="editData.requires_purchase_order"
+                  color="#07254A"
+                  inset
+                  density="compact"
+                  hide-details
+                >
+                  <template #label>
+                    <span class="text-body-2 text-slate-800 font-weight-medium">
+                      Exigir Orden de Compra (PO Obligatoria para evaluaciones)
+                    </span>
+                  </template>
+                </v-switch>
+              </v-col>
+            </v-row>
+          </v-form>
+        </v-card-text>
+
+        <v-divider></v-divider>
+
+        <v-card-actions class="px-6 py-3 justify-end gap-2 bg-slate-50">
+          <v-btn
+            variant="plain"
+            color="grey-darken-1"
+            class="text-none font-weight-bold"
+            :disabled="updating"
+            @click="editDialog = false"
+          >
+            Cancelar
+          </v-btn>
+          <v-btn
+            variant="flat"
+            color="#07254A"
+            class="text-none font-weight-bold text-white px-5"
+            :loading="updating"
+            @click="submitEdit"
+          >
+            Guardar Cambios
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <!-- Snackbar -->
     <v-snackbar v-model="snackbar.show" :color="snackbar.color" location="top right" timeout="3000">
       {{ snackbar.text }}
@@ -277,7 +442,7 @@ export default {
         search: '',
         headers: [
           { title: 'Empresa / Razón Social', key: 'company_name', align: 'start' },
-          { title: 'RFC', key: 'rfc', align: 'start', sortable: false },
+          { title: 'RFC / Régimen', key: 'rfc', align: 'start', sortable: false },
           { title: 'Contacto / Login', key: 'contact_email', align: 'start' },
           { title: 'Constancia Fiscal (CSF)', key: 'fiscal_document', align: 'center', sortable: false },
           { title: 'O.C. Requerida', key: 'requires_purchase_order', align: 'center', sortable: false },
@@ -285,12 +450,35 @@ export default {
           { title: 'Acciones', key: 'actions', align: 'end', sortable: false },
         ],
       },
+      // Estado para la edición
+      editDialog: false,
+      isFormValid: true,
+      editId: null,
+      editData: {
+        company_name: '',
+        trade_name: '',
+        rfc: '',
+        tax_regime: null,
+        contact_email: '',
+        contact_phone: '',
+        requires_purchase_order: false,
+      },
+      // Catálogo de regímenes fiscales comunes del SAT
+      taxRegimes: [
+        '601 - General de Ley Personas Morales',
+        '603 - Personas Morales con Fines no Lucrativos',
+        '612 - Personas Físicas con Actividades Empresariales y Profesionales',
+        '621 - Incorporación Fiscal',
+        '626 - Régimen Simplificado de Confianza (RESICO)',
+        '605 - Sueldos y Salarios e Ingresos Asimilados a Salarios',
+        '606 - Arrendamiento',
+      ],
       snackbar: { show: false, text: '', color: 'success' },
     };
   },
 
   computed: {
-    ...mapState(useClientsStore, ['clients', 'loading']),
+    ...mapState(useClientsStore, ['clients', 'loading', 'updating']),
 
     paginationText() {
       const total = this.clients.length;
@@ -306,7 +494,7 @@ export default {
   },
 
   methods: {
-    ...mapActions(useClientsStore, ['fetchClients', 'toggleClientStatus', 'destroyClient']),
+    ...mapActions(useClientsStore, ['fetchClients', 'updateClient', 'toggleClientStatus', 'destroyClient']),
 
     notify(text, color = 'success') {
       this.snackbar.text = text;
@@ -320,6 +508,37 @@ export default {
         this.notify('Listado de empresas actualizado.');
       } catch (e) {
         this.notify('Error al recargar el directorio.', 'error');
+      }
+    },
+
+    openEditDialog(item) {
+      this.editId = item.id;
+      this.editData = {
+        company_name: item.company_name || '',
+        trade_name: item.trade_name || '',
+        rfc: item.rfc || '',
+        tax_regime: item.tax_regime || item.fiscal_regime || null,
+        contact_email: item.contact_email || '',
+        contact_phone: item.contact_phone || '',
+        requires_purchase_order: Boolean(item.requires_purchase_order),
+      };
+      this.editDialog = true;
+    },
+
+    async submitEdit() {
+      const { valid } = await this.$refs.editForm.validate();
+      if (!valid) return;
+
+      try {
+        const res = await this.updateClient(this.editId, this.editData);
+        if (res.success) {
+          this.notify(res.message);
+          this.editDialog = false;
+        } else {
+          this.notify(res.message, 'error');
+        }
+      } catch (e) {
+        this.notify('Error al actualizar la empresa.', 'error');
       }
     },
 
@@ -481,6 +700,24 @@ export default {
 
 .custom-footer {
   border-top: 1px solid #e2e8f0;
+}
+
+/* Modal */
+.edit-modal-card {
+  border-radius: 14px !important;
+  overflow: hidden;
+}
+
+.modal-header {
+  background: linear-gradient(135deg, #07254A 0%, #0e1726 100%) !important;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 4px;
 }
 
 .gap-1 { gap: 4px; }

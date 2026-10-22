@@ -33,6 +33,35 @@ export const useUserStore = defineStore('users', {
       }
     },
 
+		async updateUser(id, payload) {
+      this.loading = true;
+      try {
+        const response = await api.put(`/users/${id}`, payload);
+        const updated = response.data.data || response.data.user || response.data;
+
+        const index = this.users.findIndex((u) => u.id === id);
+        if (index !== -1 && updated) {
+          this.users[index] = { ...this.users[index], ...updated };
+        }
+
+        return {
+          success: true,
+          message: response.data.message || 'Colaborador actualizado exitosamente.',
+          user: updated,
+        };
+      } catch (error) {
+        const message =
+          error.response?.data?.message ||
+          (error.response?.data?.errors
+            ? Object.values(error.response.data.errors).flat().join(' ')
+            : 'Ocurrió un error al actualizar los datos.');
+
+        return { success: false, message };
+      } finally {
+        this.loading = false;
+      }
+    },
+
     /**
      * Carga de colaboradores para la tabla
      */

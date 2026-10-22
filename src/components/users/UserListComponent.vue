@@ -101,7 +101,7 @@
                 class="font-weight-bold role-chip"
               >
                 <v-icon start :icon="getRoleIcon(item.role?.name)" size="14"></v-icon>
-                {{ item.role?.description || item.role?.name || 'Staff' }}
+                {{ item.role?.description || item.role?.display_name || item.role?.name || 'Staff' }}
               </v-chip>
             </td>
 
@@ -121,6 +121,23 @@
             <!-- 5. Acciones -->
             <td class="text-end pr-4">
               <div class="d-flex align-center justify-end gap-1">
+                <!-- Botón Editar -->
+                <v-tooltip text="Editar colaborador" location="top">
+                  <template #activator="{ props }">
+                    <v-btn
+                      v-bind="props"
+                      icon
+                      size="small"
+                      variant="tonal"
+                      color="primary"
+                      class="action-btn"
+                      @click="openEditDialog(item)"
+                    >
+                      <v-icon icon="mdi-pencil-outline" size="18"></v-icon>
+                    </v-btn>
+                  </template>
+                </v-tooltip>
+
                 <!-- Eliminar -->
                 <v-tooltip text="Eliminar usuario" location="top">
                   <template #activator="{ props }">
@@ -146,7 +163,7 @@
         <template v-slot:no-data>
           <div class="py-10 text-center">
             <v-avatar size="64" color="#f8fafc" class="mb-3 empty-avatar">
-              <v-icon size="32" color="#opaloBrand">mdi-account-off-outline</v-icon>
+              <v-icon size="32" color="#07254A">mdi-account-off-outline</v-icon>
             </v-avatar>
             <div class="text-subtitle-1 font-weight-bold text-slate-800">
               No hay colaboradores registrados aún
@@ -158,6 +175,94 @@
         </template>
       </v-data-table>
     </v-card-text>
+
+    <!-- MODAL DE EDICIÓN CORPORATIVO ÓPALO -->
+    <v-dialog v-model="editDialog" max-width="600px" persistent>
+      <v-card class="edit-modal-card">
+        <div class="modal-header px-6 py-4 d-flex align-center justify-space-between">
+          <div class="d-flex align-center">
+            <v-icon icon="mdi-account-edit-outline" color="#ffffff" size="22" class="mr-2"></v-icon>
+            <h3 class="text-subtitle-1 font-weight-bold text-white mb-0">Editar Colaborador</h3>
+          </div>
+          <v-btn icon="mdi-close" variant="text" size="small" color="#ffffff" @click="editDialog = false"></v-btn>
+        </div>
+
+        <v-card-text class="pa-6">
+          <v-form ref="editForm" v-model="isFormValid" @submit.prevent="submitEdit">
+            <v-row dense>
+              <!-- Nombre Completo -->
+              <v-col cols="12">
+                <label class="form-label">Nombre Completo *</label>
+                <v-text-field
+                  v-model="editData.name"
+                  variant="outlined"
+                  density="comfortable"
+                  placeholder="Ej. Lic. Mariana Valadez Gómez"
+                  :rules="[v => !!v || 'El nombre es obligatorio']"
+                  color="#07254A"
+                ></v-text-field>
+              </v-col>
+
+              <!-- Correo Institucional -->
+              <v-col cols="12">
+                <label class="form-label">Correo Institucional (Login) *</label>
+                <v-text-field
+                  v-model="editData.email"
+                  type="email"
+                  variant="outlined"
+                  density="comfortable"
+                  placeholder="colaborador@opalo.com"
+                  :rules="[
+                    v => !!v || 'El correo es obligatorio',
+                    v => /.+@.+\..+/.test(v) || 'Correo no válido'
+                  ]"
+                  color="#07254A"
+                ></v-text-field>
+              </v-col>
+
+              <!-- Rol / Perfil Operativo -->
+              <v-col cols="12">
+                <label class="form-label">Perfil Operativo *</label>
+                <v-select
+                  v-model="editData.role_id"
+                  :items="rolesList"
+                  item-title="title"
+                  item-value="id"
+                  variant="outlined"
+                  density="comfortable"
+                  placeholder="Selecciona el rol..."
+                  :rules="[v => !!v || 'Debes seleccionar un rol']"
+                  color="#07254A"
+                ></v-select>
+              </v-col>
+            </v-row>
+          </v-form>
+        </v-card-text>
+
+        <v-divider></v-divider>
+
+        <v-card-actions class="px-6 py-3 justify-end gap-2 bg-slate-50">
+          <v-btn
+            variant="plain"
+            color="grey-darken-1"
+            class="text-none font-weight-bold"
+            :disabled="savingEdit"
+            @click="editDialog = false"
+          >
+            Cancelar
+          </v-btn>
+          <v-btn
+            variant="flat"
+            color="#07254A"
+            class="text-none font-weight-bold text-white px-5"
+            :loading="savingEdit"
+            @click="submitEdit"
+          >
+            Guardar Cambios
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
 
     <!-- Snackbar -->
     <v-snackbar v-model="snackbar.show" :color="snackbar.color" location="top right" timeout="3000">
@@ -189,22 +294,39 @@ export default {
         ],
         search: '',
       },
+      // Estado para la edición
+      editDialog: false,
+      isFormValid: true,
+      savingEdit: false,
+      editId: null,
+      editData: {
+        name: '',
+        email: '',
+        role_id: null,
+      },
     };
   },
 
   computed: {
-    // Se mapean los estados y getters reactivos desde Pinia
-    ...mapState(useUserStore, ['users', 'loading', 'totalUsers', 'activeUsers']),
+    ...mapState(useUserStore, ['users', 'roles', 'loading', 'totalUsers', 'activeUsers']),
+
+    rolesList() {
+      if (!this.roles || !Array.isArray(this.roles)) return [];
+      return this.roles.map(r => ({
+        id: r.id,
+        title: r.description || r.display_name || r.name,
+      }));
+    },
   },
 
   methods: {
-    // Se mapean las acciones del store
     ...mapActions(useUserStore, [
       'fetchUsers',
       'reloadList',
       'toggleStatus',
       'removeUser',
       'addUser',
+      'updateUser',
     ]),
 
     notify(text, color = 'success') {
@@ -213,13 +335,41 @@ export default {
       this.snackbar.show = true;
     },
 
-    async handleRemove(id) {
-      const res = await this.removeUser(id);
-      this.notify(res.message, res.success ? 'success' : 'error');
+    openEditDialog(item) {
+      this.editId = item.id;
+      this.editData = {
+        name: item.name || '',
+        email: item.email || '',
+        role_id: item.role_id || (item.role ? item.role.id : null),
+      };
+      this.editDialog = true;
     },
 
-    async handleToggleStatus(user) {
-      const res = await this.toggleStatus(user);
+    async submitEdit() {
+      const { valid } = await this.$refs.editForm.validate();
+      if (!valid) return;
+
+      this.savingEdit = true;
+      try {
+        const res = await this.updateUser(this.editId, this.editData);
+        if (res.success) {
+          this.notify(res.message);
+          this.editDialog = false;
+        } else {
+          this.notify(res.message, 'error');
+        }
+      } catch (e) {
+        this.notify('Error al actualizar el colaborador.', 'error');
+      } finally {
+        this.savingEdit = false;
+      }
+    },
+
+    async handleRemove(id) {
+      const confirmed = confirm('¿Deseas dar de baja a este colaborador del equipo?');
+      if (!confirmed) return;
+
+      const res = await this.removeUser(id);
       this.notify(res.message, res.success ? 'success' : 'error');
     },
 
@@ -313,7 +463,6 @@ export default {
   font-size: 0.85rem !important;
 }
 
-/* Cabeceras */
 :deep(.custom-opalo-table thead th) {
   font-size: 0.73rem !important;
   font-weight: 700 !important;
@@ -325,7 +474,6 @@ export default {
   padding: 12px 16px !important;
 }
 
-/* Celdas */
 .table-row td {
   padding: 12px 16px !important;
   border-bottom: 1px solid #f1f5f9;
@@ -369,4 +517,26 @@ export default {
 .empty-avatar {
   border: 1px solid #e2e8f0;
 }
+
+/* Modal Edición */
+.edit-modal-card {
+  border-radius: 14px !important;
+  overflow: hidden;
+}
+
+.modal-header {
+  background: linear-gradient(135deg, #07254A 0%, #0e1726 100%) !important;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 4px;
+}
+
+.gap-1 { gap: 4px; }
+.gap-2 { gap: 8px; }
+.gap-3 { gap: 12px; }
 </style>
