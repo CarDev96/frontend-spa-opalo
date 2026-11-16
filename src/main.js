@@ -2,7 +2,7 @@ import { createApp } from 'vue';
 import { createPinia } from 'pinia';
 import App from './App.vue';
 import router from './router';
-import vuetify from './plugins/Vuetify';
+import vuetify from './plugins/vuetify';
 import './assets/main.scss';
 
 // Forzar el atributo lang del HTML para que los componentes nativos e Intl usen español

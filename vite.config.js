@@ -6,15 +6,15 @@ import vuetify from 'vite-plugin-vuetify';
 export default defineConfig({
   plugins: [
     vue(),
-    vuetify({ autoImport: true }),
+    vuetify({ autoImport: true })
   ],
-	resolve: {
+  resolve: {
     alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url)), // 👈 Esto define @ como /src
-    },
+      '@': fileURLToPath(new URL('./src', import.meta.url))
+    }
   },
   server: {
     port: 8009,
-    strictPort: true,
-  },
+    strictPort: true
+  }
 });
