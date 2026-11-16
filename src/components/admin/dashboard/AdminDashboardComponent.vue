@@ -1,257 +1,409 @@
 <template>
-  <div class="admin-dashboard-container">
-    <!-- Header de Bienvenida -->
-    <div class="welcome-banner px-6 py-5 rounded-xl mb-6 d-flex align-center justify-space-between flex-wrap gap-4 text-white">
-      <div>
-        <div class="d-flex align-center mb-1">
-          <div class="banner-icon-box mr-3">
-            <v-icon icon="mdi-shield-check" color="#ffffff" size="24"></v-icon>
+  <div class="admin-dashboard-wrapper">
+    <!-- Banner Principal -->
+    <v-card flat class="banner-card elevation-0 mb-6">
+      <div class="card-header px-6 py-5 d-flex flex-wrap align-center justify-space-between text-white gap-3">
+        <div class="d-flex align-center">
+          <div class="header-icon-box mr-4 flex-shrink-0">
+            <v-icon icon="mdi-shield-check" color="#ffffff" size="26"></v-icon>
           </div>
           <div>
-            <h1 class="text-h5 font-weight-bold mb-0">Panel de Control Operativo</h1>
-            <p class="text-subtitle-2 opacity-80 mb-0">
-              Resumen en tiempo real de citas, candidatos y validación de órdenes.
-            </p>
+            <h2 class="card-title text-white mb-1">Panel de Control Operativo</h2>
+            <span class="card-subtitle text-white opacity-80">
+              Resumen en tiempo real de citas, tiempos de atención desde orden y estatus de evaluados
+            </span>
           </div>
         </div>
+
+        <v-btn
+          variant="flat"
+          color="rgba(255,255,255,0.16)"
+          rounded="lg"
+          size="small"
+          prepend-icon="mdi-refresh"
+          class="text-none font-weight-bold text-white"
+          :loading="loading"
+          @click="loadStats"
+        >
+          Actualizar Datos
+        </v-btn>
       </div>
-      <v-btn
-        variant="flat"
-        color="rgba(255, 255, 255, 0.15)"
-        rounded="lg"
-        prepend-icon="mdi-refresh"
-        class="text-none font-weight-bold text-white refresh-btn"
-        :loading="loading"
-        @click="fetchDashboardStats"
-      >
-        Actualizar Datos
-      </v-btn>
-    </div>
+    </v-card>
 
-    <!-- Tarjetas de Métricas KPI -->
+    <!-- 1. KPIs PRINCIPALES -->
     <v-row dense class="mb-6">
-      <!-- Citas Activas / Hoy -->
-      <v-col cols="12" sm="6" lg="3" class="pa-2">
-        <v-card flat class="stat-card stat-blue pa-5 rounded-xl elevation-0 border d-flex flex-column justify-space-between h-100">
-          <div>
-            <div class="d-flex align-center justify-space-between mb-3">
-              <span class="stat-badge-title">Citas Programadas</span>
-              <div class="stat-icon-wrapper bg-blue-50">
-                <v-icon icon="mdi-calendar-check" color="#0284C7" size="20"></v-icon>
-              </div>
-            </div>
-            <div class="stat-number text-slate-900 mb-1">
-              {{ stats.scheduled_appointments }}
+      <v-col cols="12" sm="6" md="3" class="pa-2">
+        <v-card flat class="kpi-card pa-4 h-100 border-top-blue">
+          <div class="d-flex align-center justify-space-between mb-2">
+            <span class="kpi-label">CITAS PROGRAMADAS</span>
+            <div class="kpi-icon bg-blue-50">
+              <v-icon icon="mdi-calendar-check" color="#2563EB" size="20"></v-icon>
             </div>
           </div>
-          <div class="stat-footnote text-slate-500 pt-2 border-top-subtle">
-            <span class="font-weight-bold text-blue-700 bg-blue-50 px-2 py-0-5 rounded-pill mr-1">
-              {{ stats.today_appointments }}
-            </span>
-            para el día de hoy
+          <div class="kpi-value text-slate-900">{{ stats.scheduled_appointments || 0 }}</div>
+          <div class="kpi-sub text-slate-500 mt-1">
+            {{ stats.today_appointments || 0 }} para el día de hoy
           </div>
         </v-card>
       </v-col>
 
-      <!-- Órdenes por Validar -->
-      <v-col cols="12" sm="6" lg="3" class="pa-2">
-        <v-card flat class="stat-card stat-amber pa-5 rounded-xl elevation-0 border d-flex flex-column justify-space-between h-100">
-          <div>
-            <div class="d-flex align-center justify-space-between mb-3">
-              <span class="stat-badge-title">Pagos en Revisión</span>
-              <div class="stat-icon-wrapper bg-amber-50">
-                <v-icon icon="mdi-receipt-text-check-outline" color="#D97706" size="20"></v-icon>
-              </div>
-            </div>
-            <div class="stat-number text-slate-900 mb-1">
-              {{ stats.pending_orders }}
+      <v-col cols="12" sm="6" md="3" class="pa-2">
+        <v-card flat class="kpi-card pa-4 h-100 border-top-amber">
+          <div class="d-flex align-center justify-space-between mb-2">
+            <span class="kpi-label">PAGOS EN REVISIÓN</span>
+            <div class="kpi-icon bg-amber-50">
+              <v-icon icon="mdi-file-clock-outline" color="#D97706" size="20"></v-icon>
             </div>
           </div>
-          <div class="stat-footnote text-slate-500 pt-2 border-top-subtle d-flex align-center">
-            <v-icon icon="mdi-alert-circle-outline" size="14" color="#D97706" class="mr-1"></v-icon>
-            Pendientes de liberación
+          <div class="kpi-value text-slate-900">{{ stats.pending_orders || 0 }}</div>
+          <div class="kpi-sub text-slate-500 mt-1">Pendientes de liberación</div>
+        </v-card>
+      </v-col>
+
+      <v-col cols="12" sm="6" md="3" class="pa-2">
+        <v-card flat class="kpi-card pa-4 h-100 border-top-emerald">
+          <div class="d-flex align-center justify-space-between mb-2">
+            <span class="kpi-label">EVALUACIONES TERMINADAS</span>
+            <div class="kpi-icon bg-emerald-50">
+              <v-icon icon="mdi-check-decagram" color="#059669" size="20"></v-icon>
+            </div>
+          </div>
+          <div class="kpi-value text-emerald-700">{{ stats.completed_count || 0 }}</div>
+          <div class="kpi-sub text-slate-500 mt-1">
+            De {{ stats.total_examinees || 0 }} candidatos registrados
           </div>
         </v-card>
       </v-col>
 
-      <!-- Evaluados Totales -->
-      <v-col cols="12" sm="6" lg="3" class="pa-2">
-        <v-card flat class="stat-card stat-emerald pa-5 rounded-xl elevation-0 border d-flex flex-column justify-space-between h-100">
-          <div>
-            <div class="d-flex align-center justify-space-between mb-3">
-              <span class="stat-badge-title">Candidatos Registrados</span>
-              <div class="stat-icon-wrapper bg-emerald-50">
-                <v-icon icon="mdi-account-group-outline" color="#059669" size="20"></v-icon>
-              </div>
-            </div>
-            <div class="stat-number text-slate-900 mb-1">
-              {{ stats.total_examinees }}
+      <v-col cols="12" sm="6" md="3" class="pa-2">
+        <v-card flat class="kpi-card pa-4 h-100 border-top-indigo">
+          <div class="d-flex align-center justify-space-between mb-2">
+            <span class="kpi-label">TIEMPO PROMEDIO CIERRE</span>
+            <div class="kpi-icon bg-indigo-50">
+              <v-icon icon="mdi-timer-check-outline" color="#4F46E5" size="20"></v-icon>
             </div>
           </div>
-          <div class="stat-footnote text-slate-500 pt-2 border-top-subtle">
-            Expedientes dados de alta
+          <div class="kpi-value text-indigo-700">
+            {{ formatAvgTime(stats.avg_completion_hours) }}
           </div>
-        </v-card>
-      </v-col>
-
-      <!-- Empresas Clientes -->
-      <v-col cols="12" sm="6" lg="3" class="pa-2">
-        <v-card flat class="stat-card stat-purple pa-5 rounded-xl elevation-0 border d-flex flex-column justify-space-between h-100">
-          <div>
-            <div class="d-flex align-center justify-space-between mb-3">
-              <span class="stat-badge-title">Empresas Clientes</span>
-              <div class="stat-icon-wrapper bg-purple-50">
-                <v-icon icon="mdi-domain" color="#7C3AED" size="20"></v-icon>
-              </div>
-            </div>
-            <div class="stat-number text-slate-900 mb-1">
-              {{ stats.total_clients }}
-            </div>
-          </div>
-          <div class="stat-footnote text-slate-500 pt-2 border-top-subtle">
-            Cuentas corporativas activas
+          <div class="kpi-sub text-slate-500 mt-1">
+            Desde orden de evaluación hasta cierre
           </div>
         </v-card>
       </v-col>
     </v-row>
 
-    <!-- Sección Inferior: Próximas Citas y Accesos Rápidos -->
+    <!-- 2. EMBUDO COMPLETO DE ESTATUS DE EVALUADOS -->
+    <v-card flat class="section-card elevation-0 mb-6">
+      <div class="px-6 py-4 bg-slate-50 border-bottom d-flex flex-wrap align-center justify-space-between gap-2">
+        <div class="d-flex align-center">
+          <v-icon icon="mdi-chart-timeline-variant" color="#07254A" size="20" class="mr-2"></v-icon>
+          <h3 class="text-subtitle-1 font-weight-bold text-slate-900 mb-0">
+            Distribución Operativa por Estatus del Evaluado
+          </h3>
+        </div>
+        <span class="text-caption text-slate-500">Haz clic en un estatus para filtrar la tabla de tiempos</span>
+      </div>
+
+      <div class="pa-4 bg-white">
+        <v-row dense>
+          <v-col cols="6" sm="4" md="2" class="pa-1">
+            <div
+              class="funnel-pill pa-3 rounded-xl text-center cursor-pointer"
+              :class="{ 'pill-active': statusFilter === 'pending' }"
+              @click="toggleStatusFilter('pending')"
+            >
+              <div class="text-h6 font-weight-black text-slate-700">{{ breakdown.pending || 0 }}</div>
+              <div class="text-caption font-weight-bold text-slate-600">Perfil Creado</div>
+            </div>
+          </v-col>
+
+          <v-col cols="6" sm="4" md="2" class="pa-1">
+            <div
+              class="funnel-pill pa-3 rounded-xl text-center cursor-pointer"
+              :class="{ 'pill-active': statusFilter === 'order_created' }"
+              @click="toggleStatusFilter('order_created')"
+            >
+              <div class="text-h6 font-weight-black text-indigo-600">{{ breakdown.order_created || 0 }}</div>
+              <div class="text-caption font-weight-bold text-indigo-800">Orden Generada</div>
+            </div>
+          </v-col>
+
+          <v-col cols="6" sm="4" md="2" class="pa-1">
+            <div
+              class="funnel-pill pa-3 rounded-xl text-center cursor-pointer"
+              :class="{ 'pill-active': statusFilter === 'scheduled' }"
+              @click="toggleStatusFilter('scheduled')"
+            >
+              <div class="text-h6 font-weight-black text-blue-600">{{ breakdown.scheduled || 0 }}</div>
+              <div class="text-caption font-weight-bold text-blue-800">Cita Agendada</div>
+            </div>
+          </v-col>
+
+          <v-col cols="6" sm="4" md="2" class="pa-1">
+            <div
+              class="funnel-pill pa-3 rounded-xl text-center cursor-pointer"
+              :class="{ 'pill-active': statusFilter === 'awaiting_results' }"
+              @click="toggleStatusFilter('awaiting_results')"
+            >
+              <div class="text-h6 font-weight-black text-amber-600">{{ breakdown.awaiting_results || 0 }}</div>
+              <div class="text-caption font-weight-bold text-amber-800">Espera Resultados</div>
+            </div>
+          </v-col>
+
+          <v-col cols="6" sm="4" md="2" class="pa-1">
+            <div
+              class="funnel-pill pa-3 rounded-xl text-center cursor-pointer"
+              :class="{ 'pill-active': statusFilter === 'completed' }"
+              @click="toggleStatusFilter('completed')"
+            >
+              <div class="text-h6 font-weight-black text-emerald-600">{{ breakdown.completed || 0 }}</div>
+              <div class="text-caption font-weight-bold text-emerald-800">Eval. Terminada</div>
+            </div>
+          </v-col>
+
+          <v-col cols="6" sm="4" md="2" class="pa-1">
+            <div
+              class="funnel-pill pa-3 rounded-xl text-center cursor-pointer"
+              :class="{ 'pill-active': statusFilter === 'incidents' }"
+              @click="toggleStatusFilter('incidents')"
+            >
+              <div class="text-h6 font-weight-black text-red-600">{{ breakdown.incidents || 0 }}</div>
+              <div class="text-caption font-weight-bold text-red-800">Cancelada / Ausente</div>
+            </div>
+          </v-col>
+        </v-row>
+      </div>
+    </v-card>
+
+    <!-- 3. MONITOR DE TIEMPOS DE EXPEDIENTE + PRÓXIMAS CITAS Y ACCESOS -->
     <v-row dense>
-      <!-- Próximas Citas -->
-      <v-col cols="12" md="7" lg="8" class="pa-2">
-        <v-card flat class="border rounded-xl elevation-0 overflow-hidden bg-white h-100 d-flex flex-column">
-          <div class="px-6 py-4 border-bottom d-flex align-center justify-space-between bg-white">
+      <!-- Columna Izquierda: Tiempos por Evaluado -->
+      <v-col cols="12" lg="8" class="pa-2">
+        <v-card flat class="section-card elevation-0 mb-5">
+          <div class="px-6 py-4 bg-slate-50 border-bottom d-flex flex-wrap align-center justify-space-between gap-2">
             <div class="d-flex align-center">
-              <div class="section-icon-box mr-2">
-                <v-icon icon="mdi-clock-fast" color="#07254A" size="18"></v-icon>
-              </div>
-              <span class="text-subtitle-1 font-weight-bold text-slate-800">Próximas Citas Programadas</span>
+              <v-icon icon="mdi-clock-check-outline" color="#07254A" size="20" class="mr-2"></v-icon>
+              <h3 class="text-subtitle-1 font-weight-bold text-slate-900 mb-0">
+                Tiempos de Atención (Desde Orden de Evaluación)
+              </h3>
+            </div>
+
+            <div class="d-flex align-center gap-2">
+              <v-chip
+                v-if="statusFilter !== 'all'"
+                closable
+                size="x-small"
+                color="#07254A"
+                variant="flat"
+                class="text-white font-weight-bold"
+                @click:close="statusFilter = 'all'"
+              >
+                Filtro activo
+              </v-chip>
+
+              <v-btn
+                variant="text"
+                size="small"
+                color="#07254A"
+                append-icon="mdi-arrow-right"
+                class="text-none font-weight-bold"
+                @click="$router.push('/social-work/dossiers')"
+              >
+                Ir a Expedientes
+              </v-btn>
+            </div>
+          </div>
+
+          <v-card-text class="pa-0">
+            <v-data-table
+              :headers="timelineHeaders"
+              :items="filteredTimelines"
+              :loading="loading"
+              density="comfortable"
+              hover
+              no-data-text="No hay registros en este estatus"
+            >
+              <template v-slot:item="{ item }">
+                <tr>
+                  <td class="py-3">
+                    <div class="font-weight-bold text-slate-900 text-body-2">{{ item.full_name }}</div>
+                    <div class="text-caption text-slate-500">{{ item.client_name }}</div>
+                  </td>
+
+                  <td class="text-center">
+                    <v-chip
+                      size="small"
+                      :color="getStatusMeta(item.status).color"
+                      variant="tonal"
+                      class="font-weight-bold"
+                    >
+                      {{ getStatusMeta(item.status).label }}
+                    </v-chip>
+                  </td>
+
+                  <td class="text-end pr-5">
+                    <v-chip
+                      v-if="!item.has_order"
+                      size="small"
+                      color="#94A3B8"
+                      variant="tonal"
+                      class="font-weight-bold"
+                    >
+                      Sin orden generada
+                    </v-chip>
+
+                    <v-chip
+                      v-else
+                      size="small"
+                      :color="item.status === 'completed' ? '#059669' : '#475569'"
+                      :variant="item.status === 'completed' ? 'flat' : 'tonal'"
+                      class="font-mono font-weight-bold"
+                      :class="{ 'text-white': item.status === 'completed' }"
+                    >
+                      <v-icon :icon="item.status === 'completed' ? 'mdi-check-circle' : 'mdi-timer-sand'" start size="13"></v-icon>
+                      {{ item.elapsed_text }}
+                    </v-chip>
+                  </td>
+                </tr>
+              </template>
+            </v-data-table>
+          </v-card-text>
+        </v-card>
+
+        <!-- Próximas Citas Programadas -->
+        <v-card flat class="section-card elevation-0">
+          <div class="px-6 py-4 bg-slate-50 border-bottom d-flex align-center justify-space-between">
+            <div class="d-flex align-center">
+              <v-icon icon="mdi-calendar-clock-outline" color="#07254A" size="20" class="mr-2"></v-icon>
+              <h3 class="text-subtitle-1 font-weight-bold text-slate-900 mb-0">
+                Próximas Citas Programadas
+              </h3>
             </div>
             <v-btn
               variant="text"
-              color="#07254A"
               size="small"
-              class="text-none font-weight-bold"
+              color="#07254A"
               append-icon="mdi-arrow-right"
+              class="text-none font-weight-bold"
               @click="$router.push('/admin/appointments')"
             >
               Ver Todas
             </v-btn>
           </div>
 
-          <v-card-text class="pa-0 flex-grow-1">
-            <div v-if="loading" class="pa-8 text-center">
-              <v-progress-circular indeterminate color="#07254A" size="28"></v-progress-circular>
-            </div>
-
-            <div v-else-if="upcomingAppointments.length === 0" class="pa-8 text-center text-slate-500">
-              <v-icon icon="mdi-calendar-blank-outline" size="44" class="text-slate-300 mb-2"></v-icon>
-              <div class="text-body-2 font-weight-medium">No hay citas próximas agendadas</div>
-            </div>
-
-            <div v-else class="table-responsive">
-              <v-table hover density="comfortable">
-                <thead>
-                  <tr class="table-header-row">
-                    <th class="text-left font-weight-bold text-slate-700">Candidato / Empresa</th>
-                    <th class="text-left font-weight-bold text-slate-700">Psicóloga</th>
-                    <th class="text-left font-weight-bold text-slate-700">Horario</th>
-                    <th class="text-center font-weight-bold text-slate-700">Modalidad</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="app in upcomingAppointments" :key="app.id" class="table-data-row">
-                    <td class="py-3">
-                      <div class="font-weight-bold text-slate-900 text-truncate" style="max-width: 220px;">
-                        {{ app.examinee?.full_name }}
-                      </div>
-                      <div class="text-caption text-slate-500 text-truncate" style="max-width: 220px;">
-                        {{ app.client?.company_name }}
-                      </div>
-                    </td>
-                    <td>
-                      <div class="text-body-2 text-slate-800 font-weight-medium">
-                        {{ app.psychologist?.name || 'Por asignar' }}
-                      </div>
-                    </td>
-                    <td>
-                      <div class="font-weight-bold text-slate-800">{{ formatDate(app.date) }}</div>
-                      <div class="text-caption font-mono text-slate-500">
-                        {{ formatTime(app.start_time) }} - {{ formatTime(app.end_time) }}
-                      </div>
-                    </td>
-                    <td class="text-center">
-                      <v-chip size="x-small" variant="tonal" color="#07254A" class="font-weight-bold px-2">
-                        {{ app.evaluation_type?.modality?.toUpperCase() || 'PRESENCIAL' }}
-                      </v-chip>
-                    </td>
-                  </tr>
-                </tbody>
-              </v-table>
-            </div>
+          <v-card-text class="pa-0">
+            <v-table density="comfortable">
+              <thead>
+                <tr>
+                  <th>CANDIDATO / EMPRESA</th>
+                  <th>PSICÓLOGA</th>
+                  <th>HORARIO</th>
+                  <th>MODALIDAD</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="appt in upcomingAppointments" :key="appt.id">
+                  <td class="py-3">
+                    <div class="font-weight-bold text-slate-900">{{ appt.examinee?.full_name }}</div>
+                    <div class="text-caption text-slate-500">{{ appt.client?.company_name }}</div>
+                  </td>
+                  <td class="font-weight-medium text-slate-800">{{ appt.psychologist?.name }}</td>
+                  <td class="whitespace-nowrap">
+                    <div class="font-weight-bold text-slate-800">{{ formatDate(appt.date) }}</div>
+                    <div class="text-caption font-mono text-slate-500">
+                      {{ formatTime(appt.start_time) }} - {{ formatTime(appt.end_time) }}
+                    </div>
+                  </td>
+                  <td>
+                    <v-chip size="x-small" color="#07254A" variant="tonal" class="font-weight-bold">
+                      {{ (appt.evaluation_type?.modality || 'PRESENCIAL').toUpperCase() }}
+                    </v-chip>
+                  </td>
+                </tr>
+                <tr v-if="!upcomingAppointments.length">
+                  <td colspan="4" class="text-center py-6 text-caption text-grey">
+                    No hay citas próximas programadas.
+                  </td>
+                </tr>
+              </tbody>
+            </v-table>
           </v-card-text>
         </v-card>
       </v-col>
 
-      <!-- Accesos Rápidos -->
-      <v-col cols="12" md="5" lg="4" class="pa-2">
-        <v-card flat class="border rounded-xl elevation-0 bg-white pa-5 h-100 d-flex flex-column">
-          <div class="text-subtitle-1 font-weight-bold text-slate-800 mb-4 d-flex align-center">
-            <div class="section-icon-box mr-2">
-              <v-icon icon="mdi-lightning-bolt" color="#D97706" size="18"></v-icon>
-            </div>
-            Accesos Rápidos
+      <!-- Columna Derecha: Accesos Rápidos -->
+      <v-col cols="12" lg="4" class="pa-2">
+        <v-card flat class="section-card elevation-0 pa-5">
+          <div class="d-flex align-center mb-4">
+            <v-icon icon="mdi-lightning-bolt" color="#D97706" size="20" class="mr-2"></v-icon>
+            <h3 class="text-subtitle-1 font-weight-bold text-slate-900 mb-0">Accesos Rápidos</h3>
           </div>
 
-          <div class="d-flex flex-column gap-3 flex-grow-1 justify-space-between">
-            <v-btn
-              block
-              variant="flat"
-              color="#07254A"
-              rounded="lg"
-              class="quick-action-btn text-none text-white font-weight-bold py-3 px-4 elevation-1"
-              prepend-icon="mdi-shield-check"
-              @click="$router.push('/admin/orders-validation')"
-            >
-              <span class="btn-text">Revisión de Órdenes y Pagos</span>
-            </v-btn>
+          <v-btn
+            block
+            color="#07254A"
+            variant="flat"
+            rounded="lg"
+            prepend-icon="mdi-cash-plus"
+            class="text-none font-weight-bold text-white mb-3 justify-start px-4"
+            height="44"
+            @click="$router.push('/admin/orders')"
+          >
+            Generar Orden de Evaluación
+          </v-btn>
 
-            <v-btn
-              block
-              variant="outlined"
-              color="#07254A"
-              rounded="lg"
-              class="quick-action-btn quick-action-btn-outlined text-none font-weight-bold py-3 px-4"
-              prepend-icon="mdi-calendar-text"
-              @click="$router.push('/admin/appointments')"
-            >
-              <span class="btn-text">Control General de Citas</span>
-            </v-btn>
+          <v-btn
+            block
+            color="#07254A"
+            variant="outlined"
+            rounded="lg"
+            prepend-icon="mdi-check-decagram-outline"
+            class="text-none font-weight-bold mb-3 justify-start px-4"
+            height="42"
+            @click="$router.push('/admin/orders-validation')"
+          >
+            Revisión de Órdenes y Pagos
+          </v-btn>
 
-            <v-btn
-              block
-              variant="outlined"
-              color="#07254A"
-              rounded="lg"
-              class="quick-action-btn quick-action-btn-outlined text-none font-weight-bold py-3 px-4"
-              prepend-icon="mdi-file-document-multiple-outline"
-              @click="$router.push('/admin/tests-catalog')"
-            >
-              <span class="btn-text">Catálogo de Pruebas</span>
-            </v-btn>
+          <v-btn
+            block
+            color="#07254A"
+            variant="outlined"
+            rounded="lg"
+            prepend-icon="mdi-calendar-check-outline"
+            class="text-none font-weight-bold mb-3 justify-start px-4"
+            height="42"
+            @click="$router.push('/admin/appointments')"
+          >
+            Control General de Citas
+          </v-btn>
 
-            <v-btn
-              block
-              variant="outlined"
-              color="#07254A"
-              rounded="lg"
-              class="quick-action-btn quick-action-btn-outlined text-none font-weight-bold py-3 px-4"
-              prepend-icon="mdi-calendar-account-outline"
-              @click="$router.push('/clinical/psychologists-schedules')"
-            >
-              <span class="btn-text">Agenda de Psicólogos</span>
-            </v-btn>
-          </div>
+          <v-btn
+            block
+            color="#07254A"
+            variant="outlined"
+            rounded="lg"
+            prepend-icon="mdi-folder-check-outline"
+            class="text-none font-weight-bold mb-3 justify-start px-4"
+            height="42"
+            @click="$router.push('/social-work/dossiers')"
+          >
+            Validación de Expedientes
+          </v-btn>
+
+          <v-btn
+            block
+            color="#07254A"
+            variant="outlined"
+            rounded="lg"
+            prepend-icon="mdi-calendar-account-outline"
+            class="text-none font-weight-bold justify-start px-4"
+            height="42"
+            @click="$router.push('/clinical/psychologists-schedules')"
+          >
+            Agenda de Psicólogos
+          </v-btn>
         </v-card>
       </v-col>
     </v-row>
@@ -259,42 +411,103 @@
 </template>
 
 <script>
-import { mapState, mapActions } from 'pinia';
-import { useAdminDashboardStore } from '@/store/adminDashboard';
+import api from '@/services/api';
 
 export default {
   name: 'AdminDashboardComponent',
+  data() {
+    return {
+      loading: false,
+      stats: {},
+      breakdown: {},
+      examineeTimelines: [],
+      upcomingAppointments: [],
+      statusFilter: 'all',
+      timelineHeaders: [
+        { title: 'Candidato / Empresa', key: 'full_name', align: 'start' },
+        { title: 'Estatus Actual', key: 'status', align: 'center' },
+        { title: 'Tiempo Desde Orden', key: 'total_hours', align: 'end' },
+      ],
+    };
+  },
+
   computed: {
-    ...mapState(useAdminDashboardStore, ['stats', 'upcomingAppointments', 'loading']),
+    filteredTimelines() {
+      if (this.statusFilter === 'all') return this.examineeTimelines;
+      if (this.statusFilter === 'pending') {
+        return this.examineeTimelines.filter((e) => ['pending', 'registered', null].includes(e.status));
+      }
+      if (this.statusFilter === 'awaiting_results') {
+        return this.examineeTimelines.filter((e) => ['awaiting_results', 'attended'].includes(e.status));
+      }
+      if (this.statusFilter === 'incidents') {
+        return this.examineeTimelines.filter((e) => ['cancelled', 'no_show'].includes(e.status));
+      }
+      return this.examineeTimelines.filter((e) => e.status === this.statusFilter);
+    },
   },
+
   mounted() {
-    this.fetchDashboardStats();
+    this.loadStats();
   },
+
   methods: {
-    ...mapActions(useAdminDashboardStore, ['fetchDashboardStats']),
+    toggleStatusFilter(stage) {
+      this.statusFilter = this.statusFilter === stage ? 'all' : stage;
+    },
+
+    formatAvgTime(hours) {
+      const h = Number(hours || 0);
+      if (h === 0) return 'Sin cierres aún';
+      if (h < 24) return `${h} hrs`;
+      const days = Math.floor(h / 24);
+      const remHours = Math.round(h % 24);
+      return `${days}d ${remHours}h`;
+    },
+
+    getStatusMeta(status) {
+      const map = {
+        pending: { label: 'Perfil Creado', color: '#475569' },
+        registered: { label: 'Perfil Creado', color: '#475569' },
+        order_created: { label: 'Orden Generada', color: '#4F46E5' },
+        scheduled: { label: 'Cita Agendada', color: '#2563EB' },
+        awaiting_results: { label: 'En Espera Resultados', color: '#D97706' },
+        attended: { label: 'En Espera Resultados', color: '#D97706' },
+        completed: { label: 'Evaluación Terminada', color: '#059669' },
+        cancelled: { label: 'Cita Cancelada', color: '#DC2626' },
+        no_show: { label: 'No se presentó', color: '#DC2626' },
+      };
+      return map[status] || map.pending;
+    },
 
     formatDate(dateString) {
       if (!dateString) return '';
-      try {
-        const cleanDate = dateString.split('T')[0];
-        const [year, month, day] = cleanDate.split('-');
-        const d = new Date(year, month - 1, day);
-        return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short' });
-      } catch (e) {
-        return dateString;
-      }
+      const clean = dateString.split('T')[0];
+      const [y, m, d] = clean.split('-');
+      return new Date(y, m - 1, d).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' });
     },
 
     formatTime(timeString) {
       if (!timeString) return '';
+      const clean = timeString.split('T')[1] ? timeString.split('T')[1].substring(0, 5) : timeString.substring(0, 5);
+      const [h, m] = clean.split(':');
+      const d = new Date();
+      d.setHours(h, m);
+      return d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true });
+    },
+
+    async loadStats() {
+      this.loading = true;
       try {
-        const cleanTime = timeString.split('T')[1] ? timeString.split('T')[1].substring(0, 5) : timeString.substring(0, 5);
-        const [hour, minute] = cleanTime.split(':');
-        const d = new Date();
-        d.setHours(hour, minute);
-        return d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true });
+        const res = await api.get('/admin/dashboard/stats');
+        this.stats = res.data?.stats || {};
+        this.breakdown = res.data?.status_breakdown || {};
+        this.examineeTimelines = res.data?.examinee_timelines || [];
+        this.upcomingAppointments = res.data?.upcoming_appointments || [];
       } catch (e) {
-        return timeString;
+        console.error('Error cargando estadísticas del dashboard:', e);
+      } finally {
+        this.loading = false;
       }
     },
   },
@@ -302,18 +515,22 @@ export default {
 </script>
 
 <style scoped>
-.admin-dashboard-container {
-  width: 100%;
+.banner-card,
+.section-card {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 16px !important;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
 }
 
-.welcome-banner {
+.card-header {
   background: linear-gradient(135deg, #07254A 0%, #0e1726 100%) !important;
-  box-shadow: 0 4px 14px rgba(7, 37, 74, 0.12);
 }
 
-.banner-icon-box {
-  width: 42px;
-  height: 42px;
+.header-icon-box {
+  width: 48px;
+  height: 48px;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.12);
   display: flex;
@@ -321,63 +538,44 @@ export default {
   justify-content: center;
 }
 
-.refresh-btn {
-  backdrop-filter: blur(4px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-/* KPI Cards */
-.stat-card {
-  background-color: #ffffff;
-  border-color: #e2e8f0 !important;
-  transition: all 0.25s ease;
-  position: relative;
-  overflow: hidden;
-}
-
-.stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.04) !important;
-}
-
-.stat-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-}
-
-.stat-blue::before { background-color: #0284C7; }
-.stat-amber::before { background-color: #D97706; }
-.stat-emerald::before { background-color: #059669; }
-.stat-purple::before { background-color: #7C3AED; }
-
-.stat-badge-title {
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #64748B;
-}
-
-.stat-number {
-  font-size: 2rem;
+.card-title {
+  font-size: 1.25rem;
   font-weight: 800;
-  line-height: 1.1;
-  letter-spacing: -0.5px;
 }
 
-.stat-footnote {
+.card-subtitle {
+  font-size: 0.85rem;
+}
+
+.kpi-card {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 14px !important;
+}
+
+.border-top-blue { border-top: 3px solid #2563EB !important; }
+.border-top-amber { border-top: 3px solid #D97706 !important; }
+.border-top-emerald { border-top: 3px solid #059669 !important; }
+.border-top-indigo { border-top: 3px solid #4F46E5 !important; }
+
+.kpi-label {
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: #64748b;
+  letter-spacing: 0.4px;
+}
+
+.kpi-value {
+  font-size: 1.75rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.kpi-sub {
   font-size: 0.75rem;
 }
 
-.border-top-subtle {
-  border-top: 1px solid #f1f5f9;
-}
-
-.stat-icon-wrapper {
+.kpi-icon {
   width: 36px;
   height: 36px;
   border-radius: 10px;
@@ -386,78 +584,32 @@ export default {
   justify-content: center;
 }
 
-.bg-blue-50 { background-color: #f0f9ff; }
-.bg-amber-50 { background-color: #fffbeb; }
-.bg-emerald-50 { background-color: #ecfdf5; }
-.bg-purple-50 { background-color: #f5f3ff; }
+.bg-blue-50 { background: #eff6ff; }
+.bg-amber-50 { background: #fffbeb; }
+.bg-emerald-50 { background: #ecfdf5; }
+.bg-indigo-50 { background: #eef2ff; }
+.bg-slate-50 { background: #f8fafc; }
 
-.section-icon-box {
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  background-color: #f1f5f9;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.border-bottom {
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.table-header-row th {
-  background-color: #f8fafc !important;
-  font-size: 0.78rem !important;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-}
-
-.table-data-row:hover {
-  background-color: #f8fafc !important;
-}
-
-/* Quick Action Buttons */
-.quick-action-btn {
-  height: 48px !important;
-  font-size: 0.85rem !important;
+.funnel-pill {
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
   transition: all 0.2s ease;
 }
 
-.quick-action-btn:hover {
-  transform: translateX(3px);
+.funnel-pill:hover {
+  transform: translateY(-2px);
+  border-color: #94a3b8;
 }
 
-.quick-action-btn-outlined {
-  border-color: #cbd5e1 !important;
-  background-color: #ffffff;
-}
-
-.quick-action-btn-outlined:hover {
-  background-color: #f8fafc !important;
+.pill-active {
   border-color: #07254A !important;
+  background-color: #eff6ff !important;
 }
 
-.btn-text {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.font-mono {
-  font-family: monospace;
-}
-
-.py-0-5 {
-  padding-top: 2px;
-  padding-bottom: 2px;
-}
-
+.border-bottom { border-bottom: 1px solid #e2e8f0; }
+.whitespace-nowrap { white-space: nowrap; }
+.cursor-pointer { cursor: pointer; }
+.font-mono { font-family: monospace; }
+.gap-2 { gap: 8px; }
 .gap-3 { gap: 12px; }
-.gap-4 { gap: 16px; }
-
-@media (max-width: 960px) {
-  .stat-number {
-    font-size: 1.7rem;
-  }
-}
 </style>

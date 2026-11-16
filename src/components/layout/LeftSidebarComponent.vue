@@ -7,21 +7,21 @@
     class="app-sidebar"
   >
     <!-- Perfil Resumido -->
-		<div class="sidebar-user-box pa-4">
-			<div class="user-pill pa-3 rounded-lg">
-				<div class="d-flex align-center mb-2">
-					<v-avatar size="32" color="#07254A" class="text-white text-caption font-weight-bold mr-2">
-						{{ userInitials }}
-					</v-avatar>
-					<v-chip size="x-small" variant="flat" color="#07254A" class="text-white-custom font-weight-bold">
-						{{ userRole }}
-					</v-chip>
-				</div>
-				<div class="user-fullname text-truncate" :title="userName">
-					{{ userName }}
-				</div>
-			</div>
-		</div>
+    <div class="sidebar-user-box pa-4">
+      <div class="user-pill pa-3 rounded-lg">
+        <div class="d-flex align-center mb-2">
+          <v-avatar size="32" color="#07254A" class="text-white text-caption font-weight-bold mr-2">
+            {{ userInitials }}
+          </v-avatar>
+          <v-chip size="x-small" variant="flat" color="#07254A" class="text-white-custom font-weight-bold">
+            {{ userRole }}
+          </v-chip>
+        </div>
+        <div class="user-fullname text-truncate" :title="userName">
+          {{ userName }}
+        </div>
+      </div>
+    </div>
 
     <v-divider class="border-light mx-3"></v-divider>
 
@@ -32,16 +32,31 @@
           {{ section.title }}
         </div>
 
-        <v-list-item
-          v-for="sub in section.menu_items"
-          :key="sub.id"
-          :to="sub.route"
-          :prepend-icon="sub.icon || getIcon(sub.title)"
-          :title="sub.title"
-          rounded="lg"
-          class="sidebar-nav-item mb-1"
-          active-class="sidebar-item-active"
-        ></v-list-item>
+        <template v-for="sub in section.menu_items" :key="sub.id">
+          <!-- Enlace externo (ej. Validar Certificados) -->
+          <v-list-item
+            v-if="isExternalRoute(sub.route)"
+            :href="sub.route"
+            target="_blank"
+            rel="noopener noreferrer"
+            :prepend-icon="sub.icon || getIcon(sub.title)"
+            :title="sub.title"
+            append-icon="mdi-open-in-new"
+            rounded="lg"
+            class="sidebar-nav-item mb-1"
+          ></v-list-item>
+
+          <!-- Ruta interna SPA -->
+          <v-list-item
+            v-else
+            :to="sub.route"
+            :prepend-icon="sub.icon || getIcon(sub.title)"
+            :title="sub.title"
+            rounded="lg"
+            class="sidebar-nav-item mb-1"
+            active-class="sidebar-item-active"
+          ></v-list-item>
+        </template>
       </div>
     </v-list>
   </v-navigation-drawer>
@@ -62,6 +77,7 @@ export default {
       iconDictionary: [
         { key: 'Mis Evaluados', icon: 'mdi-account-group-outline' },
         { key: 'Avance y Estatus', icon: 'mdi-chart-timeline-variant-shimmer' },
+        { key: 'Validar Certificados', icon: 'mdi-certificate-outline' },
         { key: 'Agendar Citas', icon: 'mdi-calendar-clock-outline' },
         { key: 'Datos Fiscales (CSF)', icon: 'mdi-file-document-outline' },
         { key: 'Cuentas y Pagos', icon: 'mdi-credit-card-outline' },
@@ -86,14 +102,17 @@ export default {
     },
     userInitials() {
       if (!this.userName) return 'U';
-      return this.userName.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
+      return this.userName.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase();
     },
   },
   methods: {
     ...mapActions(useAuthStore, ['fetchNavigation']),
+    isExternalRoute(route) {
+      return typeof route === 'string' && (route.startsWith('http://') || route.startsWith('https://'));
+    },
     getIcon(title) {
       const match = this.iconDictionary.find(
-        item => item.key.toLowerCase() === (title || '').trim().toLowerCase()
+        (item) => item.key.toLowerCase() === (title || '').trim().toLowerCase()
       );
       return match ? match.icon : 'mdi-circle-small';
     },
@@ -112,10 +131,6 @@ export default {
   border-right: 1px solid #e9ecef !important;
 }
 
-.text-brown-custom {
-  color: #8c7868;
-}
-
 .sidebar-user-box {
   background: #ffffff;
 }
@@ -123,29 +138,6 @@ export default {
 .user-pill {
   background: #f8fafc;
   border: 1px solid #e2e8f0;
-}
-
-.text-brown-custom {
-  color: #8c7868;
-}
-
-.user-fullname {
-  font-size: 0.88rem;
-  font-weight: 700;
-  color: #0f172a;
-}
-
-.user-info-overflow {
-  overflow: hidden;
-  width: calc(100% - 46px);
-}
-
-.user-role-tag {
-  font-size: 0.68rem;
-  text-transform: uppercase;
-  font-weight: 700;
-  letter-spacing: 0.6px;
-  color: #07254A;
 }
 
 .user-fullname {
@@ -192,4 +184,3 @@ export default {
   color: #07254A !important;
 }
 </style>
-

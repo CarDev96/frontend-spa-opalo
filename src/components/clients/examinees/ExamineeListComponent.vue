@@ -109,7 +109,7 @@
               </div>
             </td>
 
-            <!-- 4. Estatus Operativo -->
+            <!-- 4. Estatus Operativo Real Sincronizado -->
             <td class="text-center">
               <v-chip
                 size="small"
@@ -227,35 +227,47 @@ export default {
 
     getStatusColor(status) {
       const map = {
-        registered: '#0284C7',
-        scheduled: '#10B981',
-        in_process: '#F59E0B',
+        pending: '#475569',
+        registered: '#475569',
+        order_created: '#4F46E5',
+        scheduled: '#2563EB',
+        awaiting_results: '#D97706',
+        attended: '#D97706',
         completed: '#059669',
-        cancelled: '#EF4444',
+        cancelled: '#DC2626',
+        no_show: '#DC2626',
       };
-      return map[status] || '#0284C7';
+      return map[status] || '#475569';
     },
 
     getStatusIcon(status) {
       const map = {
-        registered: 'mdi-account-plus-outline',
-        scheduled: 'mdi-calendar-check',
-        in_process: 'mdi-progress-clock',
+        pending: 'mdi-account-check-outline',
+        registered: 'mdi-account-check-outline',
+        order_created: 'mdi-file-document-check-outline',
+        scheduled: 'mdi-calendar-clock',
+        awaiting_results: 'mdi-timer-sand',
+        attended: 'mdi-timer-sand',
         completed: 'mdi-check-decagram',
-        cancelled: 'mdi-cancel',
+        cancelled: 'mdi-calendar-remove',
+        no_show: 'mdi-account-alert-outline',
       };
       return map[status] || 'mdi-account-outline';
     },
 
     formatStatus(status) {
       const map = {
-        registered: 'Registrado',
+        pending: 'Perfil Creado',
+        registered: 'Perfil Creado',
+        order_created: 'Orden Generada',
         scheduled: 'Cita Agendada',
-        in_process: 'En Evaluación',
-        completed: 'Completado',
-        cancelled: 'Cancelado',
+        awaiting_results: 'En Espera Resultados',
+        attended: 'En Espera Resultados',
+        completed: 'Evaluación Terminada',
+        cancelled: 'Cancelada',
+        no_show: 'No se presentó',
       };
-      return map[status] || 'Registrado';
+      return map[status] || 'Perfil Creado';
     },
 
     openWhatsApp(item) {

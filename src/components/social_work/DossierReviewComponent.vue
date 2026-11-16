@@ -1,22 +1,22 @@
 <template>
   <v-card flat class="review-table-card elevation-0">
-    <!-- Cabecera Corporativa Ópalo -->
-    <div class="card-table-header px-6 py-4 d-flex flex-wrap align-center justify-space-between gap-3">
+    <!-- Header -->
+    <div class="card-table-header px-6 py-4 d-flex align-center justify-space-between flex-wrap gap-2">
       <div class="d-flex align-center">
         <div class="header-icon-box mr-3 flex-shrink-0">
-          <v-icon icon="mdi-folder-check" color="#ffffff" size="20"></v-icon>
+          <v-icon icon="mdi-folder-check-outline" color="#ffffff" size="20"></v-icon>
         </div>
         <div>
           <h2 class="card-title text-white mb-0">Validación de Expedientes (Trabajo Social / Psicología)</h2>
           <span class="card-subtitle text-white opacity-80">
-            Revisión documental integral, fotografías, cotejo de referencias y psicometría
+            Revisión documental integral, recordatorios al cliente, psicometría y cierre de evaluación
           </span>
         </div>
       </div>
 
       <div class="d-flex align-center gap-2">
-        <v-chip color="rgba(255,255,255,0.15)" text-color="#ffffff" size="small" class="font-weight-bold mr-2 text-white">
-          {{ dossiers.length }} En Proceso
+        <v-chip size="small" color="rgba(255,255,255,0.16)" class="text-white font-weight-bold">
+          {{ dossiers.length }} Evaluados
         </v-chip>
         <v-btn
           variant="flat"
@@ -32,10 +32,10 @@
       </div>
     </div>
 
-    <!-- Barra de búsqueda -->
-    <div class="table-toolbar px-6 py-3 border-bottom bg-slate-50">
+    <!-- Buscador -->
+    <div class="table-toolbar px-6 py-3 bg-slate-50">
       <v-row dense align="center">
-        <v-col cols="12" sm="7" md="5">
+        <v-col cols="12" sm="8" md="5">
           <v-text-field
             v-model="search"
             placeholder="Buscar por evaluado, CURP o empresa..."
@@ -43,6 +43,7 @@
             variant="outlined"
             density="compact"
             hide-details
+            clearable
             rounded="lg"
             bg-color="#ffffff"
             color="#07254A"
@@ -51,7 +52,7 @@
       </v-row>
     </div>
 
-    <!-- Tabla de Expedientes -->
+    <!-- Tabla -->
     <v-card-text class="pa-0">
       <v-data-table
         :headers="headers"
@@ -62,10 +63,10 @@
         density="comfortable"
       >
         <template v-slot:item="{ item }">
-          <tr class="table-row">
+          <tr>
             <td class="py-3">
               <div class="font-weight-bold text-slate-800">{{ item.full_name }}</div>
-              <div class="text-caption text-grey font-mono">{{ item.curp }}</div>
+              <div class="text-caption text-grey font-mono">{{ item.curp || 'SIN CURP' }}</div>
             </td>
 
             <td>
@@ -74,10 +75,22 @@
               </div>
             </td>
 
+            <!-- Estatus del Evaluado -->
+            <td class="text-center">
+              <v-chip
+                size="small"
+                :color="getExamineeStatusBadge(item.status).color"
+                variant="tonal"
+                class="font-weight-bold"
+              >
+                {{ getExamineeStatusBadge(item.status).label }}
+              </v-chip>
+            </td>
+
             <!-- Contador de Documentación Total -->
             <td class="text-center">
               <v-chip size="small" :color="getDocumentsBadgeColor(item.documents)" variant="flat" class="font-weight-bold text-white">
-                {{ item.documents?.length || 0 }} Documentos
+                {{ item.documents?.length || 0 }} Docs
               </v-chip>
             </td>
 
@@ -97,17 +110,63 @@
 
             <!-- Acciones -->
             <td class="text-end pr-4">
-              <v-btn
-                size="small"
-                variant="flat"
-                color="#07254A"
-                rounded="lg"
-                prepend-icon="mdi-shield-search"
-                class="text-none font-weight-bold text-white"
-                @click="openReview(item)"
-              >
-                Auditar Expediente
-              </v-btn>
+              <div class="d-flex align-center justify-end gap-2">
+                <!-- Botón Recordatorio si faltan docs o referencias -->
+                <v-tooltip v-if="isDossierIncomplete(item)" text="Enviar recordatorio por correo al cliente" location="top">
+                  <template v-slot:activator="{ props }">
+                    <v-btn
+                      v-bind="props"
+                      size="small"
+                      variant="tonal"
+                      color="#D97706"
+                      rounded="lg"
+                      prepend-icon="mdi-email-alert-outline"
+                      class="text-none font-weight-bold"
+                      :loading="remindingId === item.id"
+                      @click="sendReminder(item)"
+                    >
+                      Recordar Docs
+                    </v-btn>
+                  </template>
+                </v-tooltip>
+
+                <v-btn
+                  size="small"
+                  variant="flat"
+                  color="#07254A"
+                  rounded="lg"
+                  prepend-icon="mdi-shield-search"
+                  class="text-none font-weight-bold text-white"
+                  @click="openReview(item)"
+                >
+                  Auditar
+                </v-btn>
+
+                <v-btn
+                  v-if="item.status !== 'completed'"
+                  size="small"
+                  variant="flat"
+                  color="#10B981"
+                  rounded="lg"
+                  prepend-icon="mdi-check-decagram"
+                  class="text-none font-weight-bold text-white"
+                  :loading="completingId === item.id"
+                  @click="promptCompleteEvaluation(item)"
+                >
+                  Evaluación Terminada
+                </v-btn>
+
+                <v-chip
+                  v-else
+                  size="small"
+                  color="#059669"
+                  variant="flat"
+                  class="font-weight-bold text-white"
+                >
+                  <v-icon icon="mdi-check-circle" start size="14"></v-icon>
+                  Terminada
+                </v-chip>
+              </div>
             </td>
           </tr>
         </template>
@@ -118,7 +177,7 @@
               <v-icon size="32" color="#07254A">mdi-folder-open-outline</v-icon>
             </v-avatar>
             <div class="text-subtitle-1 font-weight-bold text-slate-800">
-              No hay expedientes pendientes de revisión
+              No hay evaluados registrados
             </div>
           </div>
         </template>
@@ -128,7 +187,7 @@
     <!-- MODAL DE AUDITORÍA INTEGRAL -->
     <v-dialog v-model="reviewDialog" max-width="1150px" persistent>
       <v-card v-if="selectedItem" class="rounded-xl overflow-hidden bg-white">
-        <div class="card-table-header px-6 py-4 d-flex align-center justify-space-between">
+        <div class="card-table-header px-6 py-4 d-flex align-center justify-space-between flex-wrap gap-2">
           <div class="d-flex align-center">
             <v-icon icon="mdi-shield-check" color="#ffffff" size="20" class="mr-2"></v-icon>
             <div>
@@ -140,13 +199,45 @@
               </span>
             </div>
           </div>
-          <v-btn icon="mdi-close" variant="text" size="small" color="#ffffff" @click="reviewDialog = false"></v-btn>
+
+          <div class="d-flex align-center gap-2">
+            <v-btn
+              v-if="isDossierIncomplete(selectedItem)"
+              size="small"
+              variant="flat"
+              color="#F59E0B"
+              rounded="lg"
+              prepend-icon="mdi-email-alert-outline"
+              class="text-none font-weight-bold text-white"
+              :loading="remindingId === selectedItem.id"
+              @click="sendReminder(selectedItem)"
+            >
+              Enviar Recordatorio Docs
+            </v-btn>
+
+            <v-btn
+              v-if="selectedItem.status !== 'completed'"
+              size="small"
+              variant="flat"
+              color="#10B981"
+              rounded="lg"
+              prepend-icon="mdi-check-decagram"
+              class="text-none font-weight-bold text-white"
+              :loading="completingId === selectedItem.id"
+              @click="promptCompleteEvaluation(selectedItem)"
+            >
+              Marcar Evaluación Terminada
+            </v-btn>
+            <v-chip v-else size="small" color="#10B981" variant="flat" class="text-white font-weight-bold">
+              Evaluación Terminada
+            </v-chip>
+
+            <v-btn icon="mdi-close" variant="text" size="small" color="#ffffff" @click="reviewDialog = false"></v-btn>
+          </div>
         </div>
 
         <v-card-text class="pa-6 bg-slate-50" style="max-height: 80vh; overflow-y: auto;">
-          <!-- ========================================================= -->
-          <!-- 1. DOCUMENTACIÓN OFICIAL (INDIVIDUALES)                   -->
-          <!-- ========================================================= -->
+          <!-- 1. DOCUMENTACIÓN OFICIAL -->
           <div class="d-flex align-center justify-space-between mb-3 border-bottom pb-2">
             <h4 class="text-subtitle-2 font-weight-bold text-slate-900 mb-0">
               1. Documentación Oficial y Laboral (PDF / Imágenes)
@@ -171,7 +262,6 @@
                   </v-chip>
                 </div>
 
-                <!-- Preview Documento -->
                 <div v-if="getDocument(slot.type)?.file_url" class="img-box mb-2 cursor-pointer" @click="openFile(getDocument(slot.type).file_url)">
                   <div v-if="isPdf(getDocument(slot.type))" class="pa-3 text-center bg-white d-flex flex-column align-center justify-center pdf-box">
                     <v-icon icon="mdi-file-pdf-box" color="#EF4444" size="36"></v-icon>
@@ -183,7 +273,6 @@
                   Sin subir
                 </div>
 
-                <!-- Alerta si está rechazado -->
                 <v-alert
                   v-if="getDocument(slot.type)?.status === 'rejected'"
                   type="error"
@@ -194,7 +283,6 @@
                   <strong>Rechazo:</strong> {{ getDocument(slot.type).rejection_reason }}
                 </v-alert>
 
-                <!-- Botones Aprobar / Rechazar -->
                 <div v-if="getDocument(slot.type)" class="d-flex gap-1 justify-center mt-2">
                   <v-btn
                     size="x-small"
@@ -220,9 +308,7 @@
             </v-col>
           </v-row>
 
-          <!-- ========================================================= -->
-          <!-- 2. CARTAS LABORALES Y DE RECOMENDACIÓN (MÚLTIPLES)        -->
-          <!-- ========================================================= -->
+          <!-- 2. CARTAS LABORALES -->
           <div class="d-flex align-center justify-space-between mb-3 border-bottom pb-2">
             <div class="d-flex align-center gap-2">
               <h4 class="text-subtitle-2 font-weight-bold text-slate-900 mb-0">
@@ -280,7 +366,6 @@
                   <v-img v-else :src="letter.file_url" aspect-ratio="1.3" cover class="rounded-lg"></v-img>
                 </div>
 
-                <!-- Alerta si está rechazada -->
                 <v-alert
                   v-if="letter.status === 'rejected'"
                   type="error"
@@ -316,9 +401,7 @@
             </v-col>
           </v-row>
 
-          <!-- ========================================================= -->
-          <!-- 3. FOTOGRAFÍAS DE IDENTIFICACIÓN Y VIVIENDA (4)           -->
-          <!-- ========================================================= -->
+          <!-- 3. FOTOGRAFÍAS -->
           <div class="d-flex align-center justify-space-between mb-3 border-bottom pb-2">
             <h4 class="text-subtitle-2 font-weight-bold text-slate-900 mb-0">
               3. Fotografías de Identificación y Vivienda
@@ -348,7 +431,6 @@
                   Sin subir
                 </div>
 
-                <!-- Alerta si está rechazada -->
                 <v-alert
                   v-if="getDocument(slot.type)?.status === 'rejected'"
                   type="error"
@@ -384,9 +466,7 @@
             </v-col>
           </v-row>
 
-          <!-- ========================================================= -->
-          <!-- 4. REFERENCIAS PERSONALES PARA COTEJO TELEFÓNICO (3)      -->
-          <!-- ========================================================= -->
+          <!-- 4. REFERENCIAS PERSONALES -->
           <div class="d-flex align-center justify-space-between mb-3 border-bottom pb-2">
             <h4 class="text-subtitle-2 font-weight-bold text-slate-900 mb-0">
               4. Referencias Personales para Cotejo Telefónico
@@ -395,7 +475,14 @@
           </div>
 
           <v-row dense class="mb-5">
-            <v-col cols="12" md="4" v-for="(ref, i) in selectedItem.references" :key="i" class="pa-2">
+            <v-col
+              v-if="!selectedItem.references || selectedItem.references.length === 0"
+              cols="12"
+              class="text-caption text-grey py-3 text-center"
+            >
+              No se han registrado referencias personales para este candidato.
+            </v-col>
+            <v-col v-else cols="12" md="4" v-for="(ref, i) in selectedItem.references" :key="i" class="pa-2">
               <v-card flat class="pa-3 rounded-lg border bg-white">
                 <div class="font-weight-bold text-caption text-slate-900 mb-1">
                   {{ i + 1 }}. {{ ref.full_name }}
@@ -421,9 +508,7 @@
             </v-col>
           </v-row>
 
-          <!-- ========================================================= -->
-          <!-- 5. PRUEBAS PSICOMÉTRICAS CONTESTADAS                      -->
-          <!-- ========================================================= -->
+          <!-- 5. PRUEBAS PSICOMÉTRICAS -->
           <div class="d-flex align-center justify-space-between mb-3 border-bottom pb-2">
             <div class="d-flex align-center gap-2">
               <h4 class="text-subtitle-2 font-weight-bold text-slate-900 mb-0">
@@ -477,7 +562,6 @@
                   {{ test.original_name }}
                 </div>
 
-                <!-- Preview del Archivo Subido -->
                 <div v-if="test.file_url" class="img-box mb-2 cursor-pointer" @click="openFile(test.file_url)">
                   <div v-if="isPdf(test)" class="pa-3 text-center bg-white d-flex flex-column align-center justify-center pdf-box">
                     <v-icon icon="mdi-file-pdf-box" color="#EF4444" size="36"></v-icon>
@@ -486,7 +570,6 @@
                   <v-img v-else :src="test.file_url" aspect-ratio="1.3" cover class="rounded-lg"></v-img>
                 </div>
 
-                <!-- Alerta de Rechazo -->
                 <v-alert
                   v-if="test.status === 'rejected'"
                   type="error"
@@ -497,7 +580,6 @@
                   <strong>Rechazo:</strong> {{ test.rejection_reason }}
                 </v-alert>
 
-                <!-- Botones Aprobar / Rechazar para Psicometría -->
                 <div class="d-flex gap-1 justify-center mt-2">
                   <v-btn
                     size="x-small"
@@ -525,6 +607,39 @@
             </v-col>
           </v-row>
         </v-card-text>
+      </v-card>
+    </v-dialog>
+
+    <!-- MODAL CONFIRMAR EVALUACIÓN TERMINADA -->
+    <v-dialog v-model="completeDialog" max-width="440px">
+      <v-card class="rounded-xl overflow-hidden bg-white pa-5">
+        <div class="text-center">
+          <v-avatar size="56" color="#ecfdf5" class="mb-3">
+            <v-icon icon="mdi-check-decagram" color="#059669" size="32"></v-icon>
+          </v-avatar>
+          <h4 class="text-h6 font-weight-bold text-slate-900 mb-2">
+            ¿Marcar Evaluación Terminada?
+          </h4>
+          <p class="text-body-2 text-slate-600 mb-3" v-if="candidateToComplete">
+            Se registrará el cierre oficial del proceso para <strong>{{ candidateToComplete.full_name }}</strong> y se detendrá el contador de tiempo de certificación.
+          </p>
+        </div>
+
+        <div class="d-flex justify-center gap-2 mt-2">
+          <v-btn variant="outlined" color="grey" class="text-none font-weight-bold px-5" rounded="lg" @click="completeDialog = false">
+            Cancelar
+          </v-btn>
+          <v-btn
+            variant="flat"
+            color="#10B981"
+            class="text-none font-weight-bold text-white px-5"
+            rounded="lg"
+            :loading="completingId === candidateToComplete?.id"
+            @click="confirmCompleteEvaluation"
+          >
+            Sí, Confirmar Cierre
+          </v-btn>
+        </div>
       </v-card>
     </v-dialog>
 
@@ -559,8 +674,7 @@
       </v-card>
     </v-dialog>
 
-    <!-- Snackbar -->
-    <v-snackbar v-model="snackbar.show" :color="snackbar.color" location="top right" timeout="3000">
+    <v-snackbar v-model="snackbar.show" :color="snackbar.color" location="top right" timeout="3500">
       {{ snackbar.text }}
     </v-snackbar>
   </v-card>
@@ -579,13 +693,18 @@ export default {
       headers: [
         { title: 'Candidato / Evaluado', key: 'full_name', align: 'start' },
         { title: 'Empresa Cliente', key: 'client.trade_name', align: 'start' },
-        { title: 'Documentación Cargada', key: 'documents', align: 'center', sortable: false },
+        { title: 'Estatus Proceso', key: 'status', align: 'center' },
+        { title: 'Docs', key: 'documents', align: 'center', sortable: false },
         { title: 'Psicometría', key: 'psychometrics', align: 'center', sortable: false },
-        { title: 'Referencias', key: 'references', align: 'center', sortable: false },
+        { title: 'Refs', key: 'references', align: 'center', sortable: false },
         { title: 'Acciones', key: 'actions', align: 'end', sortable: false },
       ],
       reviewDialog: false,
       selectedItem: null,
+      completeDialog: false,
+      candidateToComplete: null,
+      completingId: null,
+      remindingId: null,
       rejectDialog: false,
       rejectionReason: '',
       targetItem: null,
@@ -627,13 +746,69 @@ export default {
       this.snackbar.show = true;
     },
 
+    isDossierIncomplete(item) {
+      if (!item || item.status === 'completed') return false;
+      const docsCount = item.documents?.length || 0;
+      const refsCount = item.references?.length || 0;
+      return docsCount < 15 || refsCount < 3;
+    },
+
+    async sendReminder(item) {
+      this.remindingId = item.id;
+      try {
+        const res = await api.post(`/examinees/${item.id}/remind-dossier`);
+        this.notify(res.data?.message || 'Recordatorio enviado por correo al cliente.');
+      } catch (e) {
+        this.notify(e.response?.data?.message || 'Error al enviar recordatorio.', 'error');
+      } finally {
+        this.remindingId = null;
+      }
+    },
+
+    getExamineeStatusBadge(status) {
+      const map = {
+        pending: { label: 'Perfil Creado', color: '#475569' },
+        registered: { label: 'Perfil Creado', color: '#475569' },
+        order_created: { label: 'Orden Generada', color: '#4F46E5' },
+        scheduled: { label: 'Cita Agendada', color: '#2563EB' },
+        awaiting_results: { label: 'En Espera Resultados', color: '#D97706' },
+        attended: { label: 'En Espera Resultados', color: '#D97706' },
+        completed: { label: 'Evaluación Terminada', color: '#059669' },
+        cancelled: { label: 'Cancelada', color: '#DC2626' },
+        no_show: { label: 'No se presentó', color: '#DC2626' },
+      };
+      return map[status] || map.pending;
+    },
+
+    promptCompleteEvaluation(item) {
+      this.candidateToComplete = item;
+      this.completeDialog = true;
+    },
+
+    async confirmCompleteEvaluation() {
+      if (!this.candidateToComplete) return;
+      this.completingId = this.candidateToComplete.id;
+      try {
+        const res = await api.patch(`/examinees/${this.candidateToComplete.id}/complete`);
+        this.notify(res.data?.message || 'Evaluación marcada como Terminada.');
+        this.completeDialog = false;
+        this.reviewDialog = false;
+        await this.fetchDossiers();
+      } catch (e) {
+        this.notify(e.response?.data?.message || 'Error al cerrar evaluación.', 'error');
+      } finally {
+        this.completingId = null;
+        this.candidateToComplete = null;
+      }
+    },
+
     async fetchDossiers() {
       this.loading = true;
       try {
         const res = await api.get('/social-work/dossiers/dt');
         this.dossiers = res.data || [];
         if (this.selectedItem) {
-          const updated = this.dossiers.find(d => d.id === this.selectedItem.id);
+          const updated = this.dossiers.find((d) => d.id === this.selectedItem.id);
           if (updated) this.selectedItem = updated;
         }
       } catch (e) {
@@ -671,7 +846,7 @@ export default {
 
     getPsychometricsBadgeColor(tests) {
       if (!tests || tests.length === 0) return 'grey';
-      const allApproved = tests.every(t => t.status === 'approved');
+      const allApproved = tests.every((t) => t.status === 'approved');
       if (allApproved) return 'success';
       return '#07254A';
     },

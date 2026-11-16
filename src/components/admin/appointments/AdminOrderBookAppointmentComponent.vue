@@ -6,9 +6,9 @@
       prepend-icon="mdi-arrow-left"
       color="#64748b"
       class="text-none font-weight-bold mb-4 px-0"
-      @click="$router.push('/admin/orders-validation')"
+      @click="$router.push('/admin/orders')"
     >
-      Regresar a Revisión de Órdenes
+      Regresar a Órdenes de Evaluación
     </v-btn>
 
     <v-card flat class="main-card elevation-0" :loading="loadingInitial">
@@ -21,13 +21,18 @@
           <div>
             <h2 class="card-title text-white mb-0">Agendar Cita de Evaluación</h2>
             <span class="card-subtitle text-white opacity-80">
-              Asignación de turno basada en orden de pago aprobada
+              Asignación directa de turno vinculada a la orden de evaluación
             </span>
           </div>
         </div>
-        <v-chip color="rgba(255,255,255,0.2)" text-color="#ffffff" size="small" class="font-weight-bold text-white">
-          <v-icon icon="mdi-check-decagram" start size="14"></v-icon>
-          Pago Aprobado
+        <v-chip
+          v-if="order"
+          :color="order.payment_status === 'approved' ? '#10B981' : 'rgba(255,255,255,0.2)'"
+          size="small"
+          class="font-weight-bold text-white"
+        >
+          <v-icon :icon="order.payment_status === 'approved' ? 'mdi-check-decagram' : 'mdi-clock-outline'" start size="14"></v-icon>
+          {{ order.payment_status === 'approved' ? 'Pago Aprobado' : 'Pago Pendiente / En Validación' }}
         </v-chip>
       </div>
 
@@ -57,7 +62,7 @@
                 </div>
               </v-col>
               <v-col cols="12" md="4">
-                <div class="text-caption font-weight-bold text-slate-500 mb-1">EVALUACIÓN PAGADA</div>
+                <div class="text-caption font-weight-bold text-slate-500 mb-1">EVALUACIÓN SOLICITADA</div>
                 <div class="d-flex align-center">
                   <v-icon icon="mdi-clipboard-check-outline" size="18" color="#10B981" class="mr-2"></v-icon>
                   <span class="text-body-2 font-weight-bold text-slate-800">{{ order.evaluation_type?.name }}</span>
@@ -197,7 +202,7 @@
           <!-- Barra Inferior -->
           <div class="d-flex align-center justify-space-between flex-wrap gap-2 mt-6 border-top pt-4">
             <span class="text-caption text-slate-500">
-              Esta cita se vinculará automáticamente con el pago de la orden seleccionada.
+              Esta cita se vinculará automáticamente con la orden de evaluación seleccionada.
             </span>
 
             <v-btn
@@ -259,7 +264,6 @@ export default {
   },
 
   computed: {
-    // MAPEAMOS EXACTAMENTE COMO ESTÁ EN TU STORE
     ...mapState(useAdminAppointmentsStore, [
       'psychologists',
       'availableSlots',
@@ -271,7 +275,6 @@ export default {
       if (!this.form.psychologist_id || !this.psychologists.length) return [];
       const psych = this.psychologists.find((p) => p.id === this.form.psychologist_id);
 
-      // Exactamente la lógica que "funcionaba excelentemente bien"
       if (!psych || !psych.psychologist_schedules) return [];
 
       return psych.psychologist_schedules
@@ -297,7 +300,6 @@ export default {
   },
 
   methods: {
-    // ACCIONES EXACTAS DE TU STORE adminAppointments.js
     ...mapActions(useAdminAppointmentsStore, [
       'fetchFormData',
       'fetchSlots',
@@ -313,20 +315,17 @@ export default {
     async fetchInitialData() {
       this.loadingInitial = true;
       try {
-        // 1. Obtenemos la orden para bloquear la info
         const resOrders = await api.get('/admin/evaluation-orders');
         const orders = resOrders.data?.data || resOrders.data || [];
-        this.order = orders.find(o => String(o.id) === String(this.orderId));
+        this.order = orders.find((o) => String(o.id) === String(this.orderId));
 
         if (!this.order) {
           this.notify('La orden no existe o ya no está disponible.', 'error');
-          setTimeout(() => this.$router.push('/admin/orders-validation'), 2000);
+          setTimeout(() => this.$router.push('/admin/orders'), 2000);
           return;
         }
 
-        // 2. Cargamos los psicólogos usando la acción original de tu Pinia
         await this.fetchFormData();
-
       } catch (error) {
         console.error('Error cargando datos iniciales:', error);
         this.notify('Ocurrió un error al cargar la información.', 'error');
@@ -345,7 +344,6 @@ export default {
 
     allowedDates(val) {
       if (!this.enabledDays.length) return false;
-      // Función intacta que se usaba antes
       const d = new Date(val);
       return this.enabledDays.includes(d.getDay());
     },
@@ -368,7 +366,6 @@ export default {
 
       this.form.start_time = null;
       if (this.form.psychologist_id && this.form.date) {
-        // LLAMAMOS AL MÉTODO DE PINIA
         this.fetchSlots(this.form.psychologist_id, this.form.date);
       }
     },
@@ -380,7 +377,6 @@ export default {
         return;
       }
 
-      // Estructuramos los datos mezclando la orden (bloqueada) y el form (fecha/hora)
       const payload = {
         client_id: this.order.client_id,
         examinee_id: this.order.examinee_id,
@@ -391,16 +387,14 @@ export default {
         notes: this.form.notes || null,
       };
 
-      // LLAMAMOS AL MÉTODO DE PINIA
       const res = await this.bookAppointment(payload);
 
       if (res.success) {
         this.notify('¡Cita agendada exitosamente!');
 
         setTimeout(() => {
-          this.$router.push('/admin/orders-validation');
+          this.$router.push('/admin/orders');
         }, 1500);
-
       } else {
         this.notify(res.message, 'error');
       }

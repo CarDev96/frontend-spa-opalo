@@ -1,7 +1,6 @@
 <template>
-  <div class="admin-appointments-container px-0 py-2">
-    <!-- Tabla de Citas Generales de Evaluación -->
-    <admin-appointment-list-component ref="listComponent" class="mt-4" />
+  <div class="admin-appointments-container pa-4">
+    <admin-appointment-list-component ref="listComponent" />
   </div>
 </template>
 
@@ -15,8 +14,8 @@ export default {
   },
   methods: {
     refreshList() {
-      if (this.$refs.listComponent?.fetchAppointments) {
-        this.$refs.listComponent.fetchAppointments();
+      if (this.$refs.listComponent?.fetchAllAppointments) {
+        this.$refs.listComponent.fetchAllAppointments();
       }
     },
   },
