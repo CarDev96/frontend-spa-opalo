@@ -1,190 +1,540 @@
 <template>
-	<v-card flat class="admin-orders-card elevation-0">
-		<!-- Barra de Filtros y Búsqueda -->
-		<div class="px-6 py-4 border-bottom bg-slate-50 d-flex flex-wrap align-center justify-space-between gap-3">
-			<div class="d-flex align-center flex-grow-1" style="max-width: 400px;">
-				<v-text-field v-model="search" placeholder="Buscar por evaluado, CURP o empresa..."
-					prepend-inner-icon="mdi-magnify" density="compact" variant="outlined" rounded="lg" hide-details
-					bg-color="#ffffff" @update:model-value="debounceFetch"></v-text-field>
-			</div>
+  <v-card flat class="list-orders-card elevation-0">
+    <div class="card-table-header text-white px-6 py-4 border-bottom bg-slate-50 d-flex flex-wrap align-center justify-space-between gap-3">
+      <div class="d-flex align-center">
+        <v-icon icon="mdi-history" color="#07254A" class="mr-2" size="20"></v-icon>
+        <h3 class="text-subtitle-1 font-weight-bold text-slate-800 mb-0">
+          Órdenes Generadas, Pagos y Agenda
+        </h3>
+      </div>
 
-			<div class="d-flex align-center gap-2">
-				<v-select v-model="statusFilter" :items="statusOptions" item-title="label" item-value="value" density="compact"
-					variant="outlined" rounded="lg" hide-details style="min-width: 180px;" bg-color="#ffffff"
-					@update:model-value="fetchOrders"></v-select>
+      <div class="d-flex align-center gap-2 flex-wrap">
+        <v-text-field
+          v-model="search"
+          placeholder="Buscar cliente, candidato o prueba..."
+          prepend-inner-icon="mdi-magnify"
+          variant="outlined"
+          density="compact"
+          hide-details
+          rounded="lg"
+          bg-color="#ffffff"
+          color="#07254A"
+          style="min-width: 260px;"
+        ></v-text-field>
 
-				<v-btn variant="flat" color="#07254A" prepend-icon="mdi-refresh"
-					class="text-none font-weight-bold text-white reload-btn" :loading="loading" @click="fetchOrders">
-					Recargar
-				</v-btn>
-			</div>
-		</div>
+        <v-btn
+          variant="flat"
+          size="small"
+          color="#07254A"
+          prepend-icon="mdi-refresh"
+          class="text-none font-weight-bold text-white reload-btn"
+          :loading="loadingOrders"
+          @click="fetchOrders"
+        >
+          Recargar
+        </v-btn>
+      </div>
+    </div>
 
-		<!-- Tabla de Órdenes -->
-		<v-card-text class="pa-0">
-			<v-data-table :headers="headers" :items="orders" :loading="loading" hover density="comfortable"
-				no-data-text="No se encontraron órdenes registradas">
-				<template v-slot:item="{ item }">
-					<tr class="table-row">
-						<!-- Empresa Cliente -->
-						<td class="py-3">
-							<div class="font-weight-bold text-slate-800">{{ item.client?.company_name }}</div>
-							<div class="text-caption font-mono text-slate-500">{{ item.client?.rfc || 'SIN RFC' }}</div>
-						</td>
+    <v-card-text class="pa-0">
+      <v-data-table
+        :headers="dynamicHeaders"
+        :items="orders"
+        :search="search"
+        :loading="loadingOrders"
+        hover
+        density="comfortable"
+        no-data-text="No hay órdenes registradas"
+      >
+        <template v-slot:item="{ item }">
+          <tr class="table-row">
+            <!-- Empresa Cliente -->
+            <td class="py-3">
+              <div class="font-weight-bold text-slate-800">
+                {{ item.client?.company_name || item.client?.trade_name || 'Cliente' }}
+              </div>
+              <div class="text-caption text-grey font-mono">
+                {{ item.client?.rfc || 'SIN RFC' }}
+              </div>
+            </td>
 
-						<!-- Evaluado -->
-						<td>
-							<div class="font-weight-bold text-slate-800">{{ item.examinee?.full_name }}</div>
-							<div class="text-caption font-mono text-grey">{{ item.examinee?.curp || 'SIN CURP' }}</div>
-						</td>
+            <!-- Candidato -->
+            <td class="py-3">
+              <div class="font-weight-bold text-slate-800">{{ item.examinee?.full_name }}</div>
+              <div class="text-caption text-grey font-mono">{{ item.examinee?.curp || 'SIN CURP' }}</div>
+            </td>
 
-						<!-- Tipo de Prueba -->
-						<td>
-							<div class="text-body-2 font-weight-medium text-slate-800">{{ item.evaluation_type?.name }}</div>
-							<div class="text-caption text-slate-400">Modalidad: {{ item.evaluation_type?.modality }}</div>
-						</td>
+            <!-- Tipo de Prueba -->
+            <td>
+              <div class="text-body-2 font-weight-medium text-slate-800">
+                {{ item.evaluation_type?.name }}
+              </div>
+              <div class="text-caption text-slate-400">
+                Modalidad: {{ item.evaluation_type?.modality }}
+              </div>
+            </td>
 
-						<!-- Total con IVA -->
-						<td class="text-end font-mono font-weight-bold text-slate-900">
-							${{ formatMoney(item.total) }} MXN
-						</td>
+            <!-- Total con IVA -->
+            <td class="text-end font-mono font-weight-bold text-slate-800">
+              ${{ formatMoney(item.total) }} MXN
+            </td>
 
-						<!-- Estatus -->
-						<td class="text-center">
-							<v-chip size="small" :color="getStatusColor(item.payment_status)" variant="flat"
-								class="font-weight-bold text-white px-2">
-								{{ formatStatus(item.payment_status) }}
-							</v-chip>
-						</td>
+            <!-- Estatus PO (Solo si el cliente requiere PO) -->
+            <td v-if="item.client?.requires_purchase_order" class="text-center">
+              <div class="d-flex flex-column align-center gap-1">
+                <v-chip
+                  size="small"
+                  :color="getPoStatusColor(item.po_status)"
+                  variant="flat"
+                  class="font-weight-bold text-white status-chip"
+                >
+                  {{ formatPoStatus(item.po_status) }}
+                </v-chip>
+                <div class="d-flex gap-1 mt-1">
+                  <v-btn
+                    v-if="item.po_file_path"
+                    size="x-small"
+                    variant="outlined"
+                    color="#07254A"
+                    prepend-icon="mdi-file-eye-outline"
+                    class="text-none font-weight-bold"
+                    @click="openFile(item.po_file_url)"
+                  >
+                    Ver PO
+                  </v-btn>
+                  <v-btn
+                    v-if="item.po_file_path && item.po_status !== 'po_approved'"
+                    size="x-small"
+                    variant="flat"
+                    color="success"
+                    class="text-none font-weight-bold text-white"
+                    @click="validatePo(item, 'po_approved')"
+                  >
+                    Aprobar PO
+                  </v-btn>
+                </div>
+              </div>
+            </td>
 
-						<!-- Acción -->
-						<td class="text-end pr-4">
-							<div class="d-flex align-center justify-end gap-2">
-								<!-- BOTÓN AGENDAR CITA: Solo visible si el pago está aprobado Y el evaluado está pendiente -->
-								<v-btn
-									v-if="item.payment_status === 'approved'"
-									size="small" variant="flat" color="#10B981" rounded="lg" prepend-icon="mdi-calendar-clock"
-									class="text-none font-weight-bold text-white mr-2"
-									@click="$router.push(`/admin/appointments/book-order/${item.id}`)">
-									Agendar Cita
-								</v-btn>
+            <!-- Estatus Pago -->
+            <td class="text-center">
+              <v-chip
+                size="small"
+                :color="getPaymentStatusColor(item.payment_status)"
+                variant="flat"
+                class="font-weight-bold text-white status-chip"
+              >
+                {{ formatPaymentStatus(item.payment_status) }}
+              </v-chip>
 
-								<!-- BOTÓN ORIGINAL: Revisar Pago -->
-								<v-btn size="small" variant="flat" color="#07254A" rounded="lg" prepend-icon="mdi-shield-search"
-									class="text-none font-weight-bold text-white" @click="$emit('open-validate', item)">
-									Revisar Pago
-								</v-btn>
-							</div>
-						</td>
-					</tr>
-				</template>
-			</v-data-table>
-		</v-card-text>
-	</v-card>
+              <div v-if="item.payment_status === 'rejected'" class="text-caption text-error mt-1 font-weight-medium">
+                Motivo: {{ item.rejection_reason }}
+              </div>
+            </td>
+
+            <!-- Acciones: Agendar Cita + Revisar Pago + Subir/Cambiar Ficha o PO -->
+            <td class="text-end pr-4">
+              <div class="d-flex align-center justify-end gap-2 flex-wrap">
+                <!-- 1. Agendar Cita Directo -->
+                <v-btn
+                  size="small"
+                  variant="flat"
+                  color="#10B981"
+                  rounded="lg"
+                  prepend-icon="mdi-calendar-clock"
+                  class="text-none font-weight-bold text-white"
+                  @click="$router.push(`/admin/appointments/book-order/${item.id}`)"
+                >
+                  Agendar Cita
+                </v-btn>
+
+                <!-- 2. Revisar / Aprobar Pago -->
+                <v-btn
+                  size="small"
+                  variant="flat"
+                  color="#07254A"
+                  rounded="lg"
+                  prepend-icon="mdi-shield-search"
+                  class="text-none font-weight-bold text-white"
+                  @click="$emit('open-validate', item)"
+                >
+                  Revisar Pago
+                </v-btn>
+
+                <!-- 3. Subir / Cambiar PO (Si aplica) o Comprobante -->
+                <v-btn
+                  v-if="item.client?.requires_purchase_order"
+                  size="small"
+                  variant="outlined"
+                  color="#07254A"
+                  rounded="lg"
+                  prepend-icon="mdi-file-upload-outline"
+                  class="text-none font-weight-bold"
+                  @click="openPoModal(item)"
+                >
+                  {{ item.po_file_path ? 'Cambiar PO' : 'Subir PO' }}
+                </v-btn>
+
+                <v-btn
+                  size="small"
+                  variant="outlined"
+                  color="#07254A"
+                  rounded="lg"
+                  prepend-icon="mdi-file-upload-outline"
+                  class="text-none font-weight-bold"
+                  :disabled="item.payment_status === 'approved'"
+                  @click="openUploadModal(item)"
+                >
+                  {{ getButtonLabel(item.payment_status) }}
+                </v-btn>
+              </div>
+            </td>
+          </tr>
+        </template>
+      </v-data-table>
+    </v-card-text>
+
+    <!-- Modal para Subir Comprobante de Pago -->
+    <v-dialog v-model="uploadDialog" max-width="480">
+      <v-card rounded="xl">
+        <v-card-title class="px-6 py-4 bg-slate-50 border-bottom d-flex align-center justify-space-between">
+          <span class="text-subtitle-1 font-weight-bold text-slate-800">
+            Adjuntar Comprobante de Pago
+          </span>
+          <v-btn icon="mdi-close" variant="text" size="small" @click="uploadDialog = false"></v-btn>
+        </v-card-title>
+
+        <v-card-text class="pa-6">
+          <div class="mb-4 text-caption text-slate-600" v-if="selectedOrder">
+            <div><strong>Empresa:</strong> {{ selectedOrder.client?.company_name }}</div>
+            <div><strong>Evaluado:</strong> {{ selectedOrder.examinee?.full_name }}</div>
+            <div><strong>Importe Total:</strong> ${{ formatMoney(selectedOrder.total) }} MXN</div>
+          </div>
+
+          <v-file-input
+            v-model="receiptFile"
+            label="Selecciona comprobante (PDF, JPG, PNG)"
+            accept=".pdf,.jpg,.jpeg,.png,.webp"
+            prepend-inner-icon="mdi-paperclip"
+            prepend-icon=""
+            variant="outlined"
+            density="comfortable"
+            rounded="lg"
+            color="#07254A"
+            show-size
+          ></v-file-input>
+        </v-card-text>
+
+        <v-card-actions class="px-6 pb-5 pt-0 d-flex justify-end gap-2">
+          <v-btn variant="text" class="text-none" @click="uploadDialog = false">Cancelar</v-btn>
+          <v-btn
+            color="#07254A"
+            variant="flat"
+            rounded="lg"
+            class="text-none font-weight-bold text-white px-5"
+            :loading="uploadingReceipt"
+            :disabled="!receiptFile"
+            @click="submitReceipt"
+          >
+            Subir Comprobante
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- Modal para Subir Orden de Compra (PO) por Admin -->
+    <v-dialog v-model="poDialog" max-width="480">
+      <v-card rounded="xl">
+        <v-card-title class="px-6 py-4 bg-slate-50 border-bottom d-flex align-center justify-space-between">
+          <span class="text-subtitle-1 font-weight-bold text-slate-800">
+            Cargar Orden de Compra (PO)
+          </span>
+          <v-btn icon="mdi-close" variant="text" size="small" @click="poDialog = false"></v-btn>
+        </v-card-title>
+
+        <v-card-text class="pa-6">
+          <div class="mb-4 text-caption text-slate-600" v-if="selectedOrder">
+            <div><strong>Empresa:</strong> {{ selectedOrder.client?.company_name }}</div>
+            <div><strong>Evaluado:</strong> {{ selectedOrder.examinee?.full_name }}</div>
+          </div>
+
+          <v-file-input
+            v-model="poFile"
+            label="Selecciona Orden de Compra (PDF, JPG, PNG)"
+            accept=".pdf,.jpg,.jpeg,.png,.webp"
+            prepend-inner-icon="mdi-paperclip"
+            prepend-icon=""
+            variant="outlined"
+            density="comfortable"
+            rounded="lg"
+            color="#07254A"
+            show-size
+          ></v-file-input>
+        </v-card-text>
+
+        <v-card-actions class="px-6 pb-5 pt-0 d-flex justify-end gap-2">
+          <v-btn variant="text" class="text-none" @click="poDialog = false">Cancelar</v-btn>
+          <v-btn
+            color="#07254A"
+            variant="flat"
+            rounded="lg"
+            class="text-none font-weight-bold text-white px-5"
+            :loading="uploadingPo"
+            :disabled="!poFile"
+            @click="submitPo"
+          >
+            Guardar PO
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <v-snackbar v-model="snackbar.show" :color="snackbar.color" location="top right" timeout="3500">
+      {{ snackbar.text }}
+    </v-snackbar>
+  </v-card>
 </template>
 
 <script>
 import api from '@/services/api';
 
 export default {
-	name: 'AdminOrdersListComponent',
-	emits: ['open-validate'],
-	data() {
-		return {
-			orders: [],
-			loading: false,
-			search: '',
-			statusFilter: 'all',
-			searchTimeout: null,
-			statusOptions: [
-				{ label: 'Todos los Estatus', value: 'all' },
-				{ label: 'En Validación', value: 'under_review' },
-				{ label: 'Aprobados', value: 'approved' },
-				{ label: 'Rechazados', value: 'rejected' },
-				{ label: 'Pendientes de Pago', value: 'pending_receipt' },
-			],
-			headers: [
-				{ title: 'Empresa Cliente', key: 'client.company_name', align: 'start' },
-				{ title: 'Candidato Evaluado', key: 'examinee.full_name', align: 'start' },
-				{ title: 'Prueba Solicitada', key: 'evaluation_type.name', align: 'start' },
-				{ title: 'Total (c/ IVA)', key: 'total', align: 'end' },
-				{ title: 'Estatus Pago', key: 'payment_status', align: 'center' },
-				{ title: 'Acciones', key: 'actions', align: 'end', sortable: false },
-			],
-		};
-	},
-	mounted() {
-		this.fetchOrders();
-	},
-	methods: {
-		formatMoney(val) {
-			return Number(val || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 });
-		},
-		debounceFetch() {
-			clearTimeout(this.searchTimeout);
-			this.searchTimeout = setTimeout(() => {
-				this.fetchOrders();
-			}, 350);
-		},
-		async fetchOrders() {
-			this.loading = true;
-			try {
-				const res = await api.get('/admin/evaluation-orders', {
-					params: {
-						payment_status: this.statusFilter,
-						search: this.search,
-					},
-				});
-				this.orders = res.data?.data || [];
-			} catch (e) {
-				console.error('Error cargando órdenes staff:', e);
-			} finally {
-				this.loading = false;
-			}
-		},
-		updateOrderItem(updated) {
-			const idx = this.orders.findIndex((o) => o.id === updated.id);
-			if (idx !== -1) {
-				this.orders[idx] = updated;
-			}
-		},
-		getStatusColor(status) {
-			const map = { pending_receipt: '#64748B', under_review: '#0284C7', approved: '#10B981', rejected: '#EF4444' };
-			return map[status] || '#64748B';
-		},
-		formatStatus(status) {
-			const map = { pending_receipt: 'Pendiente', under_review: 'En Validación', approved: 'Aprobado', rejected: 'Rechazado' };
-			return map[status] || 'Pendiente';
-		},
-	},
+  name: 'AdminListOrdersComponent',
+  emits: ['open-validate'],
+  data() {
+    return {
+      orders: [],
+      search: '',
+      loadingOrders: false,
+      uploadDialog: false,
+      poDialog: false,
+      selectedOrder: null,
+      receiptFile: null,
+      poFile: null,
+      uploadingReceipt: false,
+      uploadingPo: false,
+      snackbar: { show: false, text: '', color: 'success' },
+    };
+  },
+
+  computed: {
+    hasAnyClientRequiringPo() {
+      return this.orders.some((o) => o.client?.requires_purchase_order);
+    },
+
+    dynamicHeaders() {
+      const headers = [
+        { title: 'Empresa Cliente', key: 'client.company_name', align: 'start' },
+        { title: 'Candidato Evaluado', key: 'examinee.full_name', align: 'start' },
+        { title: 'Prueba Solicitada', key: 'evaluation_type.name', align: 'start' },
+        { title: 'Total (c/ IVA)', key: 'total', align: 'end' },
+      ];
+
+      if (this.hasAnyClientRequiringPo) {
+        headers.push({ title: 'Estatus PO', key: 'po_status', align: 'center' });
+      }
+
+      headers.push(
+        { title: 'Estatus del Pago', key: 'payment_status', align: 'center' },
+        { title: 'Acciones', key: 'actions', align: 'end', sortable: false }
+      );
+
+      return headers;
+    },
+  },
+
+  mounted() {
+    this.fetchOrders();
+  },
+
+  methods: {
+    notify(text, color = 'success') {
+      this.snackbar.text = text;
+      this.snackbar.color = color;
+      this.snackbar.show = true;
+    },
+
+    formatMoney(val) {
+      return Number(val || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 });
+    },
+
+    openFile(url) {
+      if (url) window.open(url, '_blank');
+    },
+
+    openUploadModal(order) {
+      this.selectedOrder = order;
+      this.receiptFile = null;
+      this.uploadDialog = true;
+    },
+
+    openPoModal(order) {
+      this.selectedOrder = order;
+      this.poFile = null;
+      this.poDialog = true;
+    },
+
+    async submitReceipt() {
+      if (!this.selectedOrder || !this.receiptFile) return;
+
+      const fileToUpload = Array.isArray(this.receiptFile) ? this.receiptFile[0] : this.receiptFile;
+      const formData = new FormData();
+      formData.append('file', fileToUpload);
+
+      this.uploadingReceipt = true;
+      try {
+        const res = await api.post(`/admin/evaluation-orders/${this.selectedOrder.id}/receipt`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+
+        this.notify(res.data?.message || 'Comprobante cargado exitosamente.');
+        const updated = res.data?.order;
+        if (updated) {
+          this.updateOrderItem(updated);
+        } else {
+          await this.fetchOrders();
+        }
+        this.uploadDialog = false;
+      } catch (e) {
+        this.notify(e.response?.data?.message || 'Error al subir el comprobante.', 'error');
+      } finally {
+        this.uploadingReceipt = false;
+      }
+    },
+
+    async submitPo() {
+      if (!this.selectedOrder || !this.poFile) return;
+
+      const fileToUpload = Array.isArray(this.poFile) ? this.poFile[0] : this.poFile;
+      const formData = new FormData();
+      formData.append('file', fileToUpload);
+
+      this.uploadingPo = true;
+      try {
+        const res = await api.post(`/portal/evaluation-orders/${this.selectedOrder.id}/po`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+
+        this.notify(res.data?.message || 'Orden de Compra cargada exitosamente.');
+        await this.fetchOrders();
+        this.poDialog = false;
+      } catch (e) {
+        this.notify(e.response?.data?.message || 'Error al subir la PO.', 'error');
+      } finally {
+        this.uploadingPo = false;
+      }
+    },
+
+    async validatePo(order, status) {
+      try {
+        const res = await api.post(`/admin/evaluation-orders/${order.id}/validate-po`, { status });
+        this.notify(res.data?.message || 'Orden de Compra actualizada.');
+        await this.fetchOrders();
+      } catch (e) {
+        this.notify(e.response?.data?.message || 'Error al validar la PO.', 'error');
+      }
+    },
+
+    async fetchOrders() {
+      this.loadingOrders = true;
+      try {
+        const res = await api.get('/admin/evaluation-orders');
+        const data = res.data?.data || res.data || [];
+        this.orders = Array.isArray(data) ? data : [];
+      } catch (e) {
+        console.error('Error al cargar órdenes:', e);
+      } finally {
+        this.loadingOrders = false;
+      }
+    },
+
+    appendOrder(newOrder) {
+      if (newOrder) {
+        this.orders.unshift(newOrder);
+      }
+    },
+
+    updateOrderItem(updated) {
+      const idx = this.orders.findIndex((o) => o.id === updated.id);
+      if (idx !== -1) {
+        this.orders.splice(idx, 1, updated);
+      }
+    },
+
+    getButtonLabel(status) {
+      if (status === 'approved') return 'Pagado';
+      if (status === 'rejected') return 'Reemplazar Ficha';
+      if (status === 'under_review') return 'Cambiar Ficha';
+      return 'Subir Ficha';
+    },
+
+    getPoStatusColor(status) {
+      const map = {
+        pending_po: '#64748B',
+        po_under_review: '#0284C7',
+        po_approved: '#10B981',
+        po_rejected: '#EF4444',
+      };
+      return map[status] || '#64748B';
+    },
+
+    formatPoStatus(status) {
+      const map = {
+        pending_po: 'Sin PO',
+        po_under_review: 'PO En Validación',
+        po_approved: 'PO Aprobada',
+        po_rejected: 'PO Rechazada',
+      };
+      return map[status] || 'Sin PO';
+    },
+
+    getPaymentStatusColor(status) {
+      const map = {
+        pending_receipt: '#64748B',
+        under_review: '#0284C7',
+        approved: '#10B981',
+        rejected: '#EF4444',
+      };
+      return map[status] || '#64748B';
+    },
+
+    formatPaymentStatus(status) {
+      const map = {
+        pending_receipt: 'Pendiente de Pago',
+        under_review: 'En Validación',
+        approved: 'Pago Aprobado',
+        rejected: 'Rechazado',
+      };
+      return map[status] || 'Pendiente';
+    },
+  },
 };
 </script>
 
 <style scoped>
-.admin-orders-card {
-	background: #ffffff !important;
-	border: 1px solid #e2e8f0 !important;
-	border-radius: 16px !important;
-	overflow: hidden;
+.list-orders-card {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 16px !important;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
 }
 
 .bg-slate-50 {
-	background-color: #f8fafc;
+  background-color: #f8fafc;
+}
+
+.status-chip {
+  padding: 0 8px !important;
+  height: 22px !important;
+  font-size: 0.72rem !important;
 }
 
 .reload-btn {
-	border-radius: 8px !important;
+  border-radius: 8px !important;
 }
 
-.gap-2 {
-	gap: 8px;
-}
-
-.gap-3 {
-	gap: 12px;
-}
-
-.font-mono {
-	font-family: monospace;
-}
+.gap-1 { gap: 4px; }
+.gap-2 { gap: 8px; }
+.gap-3 { gap: 12px; }
 </style>

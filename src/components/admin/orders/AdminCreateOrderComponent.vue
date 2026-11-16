@@ -15,9 +15,7 @@
     </div>
 
     <v-card-text class="pa-6 bg-white">
-      <!-- ========================================================================= -->
-      <!-- DISCLAIMER DE ORDEN DE COMPRA (PO) PREVIA OBLIGATORIA                     -->
-      <!-- ========================================================================= -->
+      <!-- DISCLAIMER DE ORDEN DE COMPRA (PO) PREVIA OBLIGATORIA -->
       <v-slide-y-transition>
         <v-alert
           v-if="selectedClient?.requires_purchase_order"
@@ -33,11 +31,8 @@
                 Requisito Previo de Facturación: Orden de Compra (PO)
               </h4>
               <p class="text-caption text-slate-700 mb-1">
-                De acuerdo con las condiciones operativas registradas para <strong>{{ selectedClient.company_name || selectedClient.trade_name }}</strong>, es obligatorio recibir previamente su <strong>Orden de Compra (PO)</strong> vigente en <strong>facturacion@opalo.com</strong>.
+                De acuerdo con las condiciones operativas registradas para <strong>{{ selectedClient.company_name || selectedClient.trade_name }}</strong>, es obligatorio recibir previamente su <strong>Orden de Compra (PO)</strong> vigente.
               </p>
-              <div class="text-caption font-weight-medium text-slate-800">
-                La asignación formal de citas de evaluación y la emisión del comprobante fiscal (CFDI) se procesarán una vez recibido y validado dicho documento.
-              </div>
             </div>
           </div>
         </v-alert>
@@ -291,11 +286,13 @@ export default {
           evaluation_type_id: this.orderForm.evaluation_type_id,
         });
 
-        this.notify(res.data.message || 'Orden generada exitosamente.');
+        // Verificamos si la respuesta es exitosa (200 o 201)
+        this.notify(res.data?.message || 'Orden generada exitosamente.', 'success');
 
-        const createdOrder = res.data?.order || res.data?.data;
+        const createdOrder = res.data?.order || res.data?.data || res.data;
         this.$emit('order-created', createdOrder);
 
+        // Limpieza de formulario y estados
         this.orderForm.client_id = null;
         this.orderForm.examinee_id = null;
         this.orderForm.evaluation_type_id = null;
@@ -303,7 +300,9 @@ export default {
         this.selectedType = null;
         this.$refs.orderFormRef.resetValidation();
       } catch (e) {
-        this.notify(e.response?.data?.message || 'Error al generar la orden.', 'error');
+        // Mostramos el mensaje exacto que envía el backend (Laravel Validation o excepción)
+        const errorMsg = e.response?.data?.message || e.message || 'Error al generar la orden.';
+        this.notify(errorMsg, 'error');
       } finally {
         this.generatingOrder = false;
       }

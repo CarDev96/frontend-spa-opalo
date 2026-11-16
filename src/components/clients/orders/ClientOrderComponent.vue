@@ -15,9 +15,7 @@
     </div>
 
     <v-card-text class="pa-6 bg-white">
-      <!-- ========================================================================= -->
-      <!-- DISCLAIMER DE ORDEN DE COMPRA (PO) PREVIA OBLIGATORIA                    -->
-      <!-- ========================================================================= -->
+      <!-- DISCLAIMER DE ORDEN DE COMPRA (PO) PREVIA OBLIGATORIA -->
       <v-slide-y-transition>
         <v-alert
           v-if="clientProfile?.requires_purchase_order"
@@ -33,11 +31,8 @@
                 Requisito Previo de Facturación: Orden de Compra (PO)
               </h4>
               <p class="text-caption text-slate-700 mb-1">
-                Estimado cliente, de acuerdo con las condiciones operativas registradas para <strong>{{ clientProfile.company_name || clientProfile.trade_name }}</strong>, es obligatorio enviar previamente su <strong>Orden de Compra (PO)</strong> vigente a <strong>facturacion@opalo.com</strong>.
+                Estimado cliente, de acuerdo con las condiciones operativas registradas para <strong>{{ clientProfile.company_name || clientProfile.trade_name }}</strong>, es obligatorio cargar previamente su <strong>Orden de Compra (PO)</strong> vigente desde la tabla inferior antes de efectuar el pago.
               </p>
-              <div class="text-caption font-weight-medium text-slate-800">
-                La asignación formal de citas de evaluación y la emisión del comprobante fiscal (CFDI) se procesarán una vez recibido y validado dicho documento.
-              </div>
             </div>
           </div>
         </v-alert>
