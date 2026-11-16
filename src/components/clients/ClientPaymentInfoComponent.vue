@@ -32,8 +32,15 @@
         </div>
       </v-alert>
 
-      <!-- Tarjeta Única: Cuenta Fiscal Oficial -->
-      <v-row dense justify="center">
+      <!-- Estado de Carga -->
+      <v-row v-if="loading" dense justify="center">
+        <v-col cols="12" md="8" lg="7">
+          <v-skeleton-loader type="article, actions" class="rounded-xl border pa-4"></v-skeleton-loader>
+        </v-col>
+      </v-row>
+
+      <!-- Tarjeta Única Dinámica: Cuenta Fiscal Oficial -->
+      <v-row v-else-if="fiscalAccount" dense justify="center">
         <v-col cols="12" md="8" lg="7">
           <v-card flat class="account-card pa-6 rounded-xl border bg-white">
             <div class="d-flex align-center justify-space-between mb-4">
@@ -53,20 +60,22 @@
 
             <div class="mb-3">
               <span class="label-caption">INSTITUCIÓN BANCARIA</span>
-              <div class="text-h6 font-weight-bold text-slate-900">BBVA México</div>
+              <div class="text-h6 font-weight-bold text-slate-900">
+                {{ fiscalAccount.bank_name }}
+              </div>
             </div>
 
             <div class="mb-3">
               <span class="label-caption">BENEFICIARIO / RAZÓN SOCIAL</span>
               <div class="text-body-1 font-weight-bold text-slate-800">
-                Ópalo Certificados de Confianza S.A. de C.V.
+                {{ fiscalAccount.beneficiary }}
               </div>
             </div>
 
-            <div class="mb-4">
+            <div class="mb-4" v-if="fiscalAccount.rfc">
               <span class="label-caption">RFC RECEPTOR FISCAL</span>
               <div class="text-body-2 font-mono font-weight-bold text-slate-800">
-                OPC200415AB3
+                {{ fiscalAccount.rfc }}
               </div>
             </div>
 
@@ -75,7 +84,7 @@
               <div>
                 <span class="label-caption text-slate-600">CLABE INTERBANCARIA (18 DÍGITOS)</span>
                 <div class="text-h6 font-mono font-weight-bold text-primary mt-1">
-                  {{ clabeInterbancaria }}
+                  {{ fiscalAccount.clabe }}
                 </div>
               </div>
 
@@ -86,18 +95,18 @@
                 rounded="lg"
                 prepend-icon="mdi-content-copy"
                 class="text-none font-weight-bold text-white px-3"
-                @click="copyToClipboard(clabeInterbancaria, 'CLABE interbancaria')"
+                @click="copyToClipboard(fiscalAccount.clabe, 'CLABE interbancaria')"
               >
                 Copiar
               </v-btn>
             </div>
 
             <!-- Número de Cuenta -->
-            <div class="d-flex align-center justify-space-between border-top pt-3">
+            <div class="d-flex align-center justify-space-between border-top pt-3" v-if="fiscalAccount.account_number">
               <div>
                 <span class="label-caption">NO. DE CUENTA</span>
                 <div class="text-body-1 font-mono font-weight-bold text-slate-800">
-                  {{ numeroCuenta }}
+                  {{ fiscalAccount.account_number }}
                 </div>
               </div>
 
@@ -108,12 +117,26 @@
                 rounded="lg"
                 prepend-icon="mdi-content-copy"
                 class="text-none font-weight-bold"
-                @click="copyToClipboard(numeroCuenta, 'Número de cuenta')"
+                @click="copyToClipboard(fiscalAccount.account_number, 'Número de cuenta')"
               >
                 Copiar Cuenta
               </v-btn>
             </div>
+
+            <!-- Instrucciones Adicionales (si existen en BD) -->
+            <div v-if="fiscalAccount.instructions" class="mt-4 pt-3 border-top text-caption text-slate-600">
+              <strong class="text-slate-800">Instrucciones de referencia:</strong> {{ fiscalAccount.instructions }}
+            </div>
           </v-card>
+        </v-col>
+      </v-row>
+
+      <!-- Estado Vacío / Sin Cuenta Configurada -->
+      <v-row v-else dense justify="center">
+        <v-col cols="12" md="8" lg="7">
+          <v-alert type="warning" variant="tonal" rounded="xl" class="text-center">
+            No se encontró una cuenta bancaria fiscal configurada actualmente. Contacta a administración.
+          </v-alert>
         </v-col>
       </v-row>
     </v-card-text>
@@ -126,12 +149,14 @@
 </template>
 
 <script>
+import api from '@/services/api';
+
 export default {
   name: 'ClientPaymentInfoComponent',
   data() {
     return {
-      clabeInterbancaria: '012320001155998842',
-      numeroCuenta: '0115599884',
+      loading: false,
+      fiscalAccount: null,
       snackbar: {
         show: false,
         text: '',
@@ -139,8 +164,26 @@ export default {
       },
     };
   },
+  mounted() {
+    this.fetchFiscalBankAccount();
+  },
   methods: {
+    async fetchFiscalBankAccount() {
+      this.loading = true;
+      try {
+        const res = await api.get('/settings/bank-accounts');
+        this.fiscalAccount = res.data?.fiscal || res.data?.data?.fiscal || null;
+      } catch (e) {
+        console.error('Error al cargar cuenta bancaria fiscal:', e);
+        this.snackbar.text = 'No se pudo obtener la información bancaria.';
+        this.snackbar.color = 'error';
+        this.snackbar.show = true;
+      } finally {
+        this.loading = false;
+      }
+    },
     async copyToClipboard(text, label = 'Dato') {
+      if (!text) return;
       try {
         await navigator.clipboard.writeText(text);
         this.snackbar.text = `${label} copiado al portapapeles.`;

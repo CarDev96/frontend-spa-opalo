@@ -169,6 +169,23 @@
                   </template>
                 </v-tooltip>
 
+                <!-- Botón Restablecer Contraseña -->
+                <v-tooltip text="Restablecer contraseña y enviar por correo" location="top">
+                  <template #activator="{ props }">
+                    <v-btn
+                      v-bind="props"
+                      icon
+                      size="small"
+                      variant="tonal"
+                      color="amber-darken-3"
+                      class="action-btn"
+                      @click="openResetDialog(item)"
+                    >
+                      <v-icon icon="mdi-key-variant" size="18"></v-icon>
+                    </v-btn>
+                  </template>
+                </v-tooltip>
+
                 <!-- Botón Estatus -->
                 <v-tooltip :text="!item.is_active ? 'Reactivar acceso' : 'Suspender acceso'" location="top">
                   <template #activator="{ props }">
@@ -279,6 +296,53 @@
         </template>
       </v-data-table>
     </v-card-text>
+
+    <!-- MODAL DE CONFIRMACIÓN RESTABLECER CONTRASEÑA -->
+    <v-dialog v-model="resetDialog" max-width="460px" persistent>
+      <v-card class="edit-modal-card">
+        <div class="modal-header px-6 py-4 d-flex align-center justify-space-between">
+          <div class="d-flex align-center">
+            <v-icon icon="mdi-key-chain" color="#ffffff" size="22" class="mr-2"></v-icon>
+            <h3 class="text-subtitle-1 font-weight-bold text-white mb-0">Restablecer Contraseña</h3>
+          </div>
+          <v-btn icon="mdi-close" variant="text" size="small" color="#ffffff" :disabled="resettingPassword" @click="resetDialog = false"></v-btn>
+        </div>
+
+        <v-card-text class="pa-6" v-if="resetTarget">
+          <p class="text-body-2 text-slate-700 mb-3">
+            Se generará una <strong>nueva contraseña temporal</strong> para la empresa <strong>{{ resetTarget.company_name }}</strong> y se enviará automáticamente al correo de acceso:
+          </p>
+          <div class="pa-3 rounded-lg bg-slate-50 border d-flex align-center gap-2">
+            <v-icon icon="mdi-email-fast-outline" color="#07254A" size="20"></v-icon>
+            <span class="font-weight-bold text-slate-800 text-body-2">{{ resetTarget.contact_email }}</span>
+          </div>
+        </v-card-text>
+
+        <v-divider></v-divider>
+
+        <v-card-actions class="px-6 py-3 justify-end gap-2 bg-slate-50">
+          <v-btn
+            variant="plain"
+            color="grey-darken-1"
+            class="text-none font-weight-bold"
+            :disabled="resettingPassword"
+            @click="resetDialog = false"
+          >
+            Cancelar
+          </v-btn>
+          <v-btn
+            variant="flat"
+            color="#D97706"
+            prepend-icon="mdi-send"
+            class="text-none font-weight-bold text-white px-5"
+            :loading="resettingPassword"
+            @click="confirmResetPassword"
+          >
+            Generar y Enviar
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
 
     <!-- MODAL DE EDICIÓN CORPORATIVO ÓPALO -->
     <v-dialog v-model="editDialog" max-width="680px" persistent>
@@ -422,7 +486,7 @@
     </v-dialog>
 
     <!-- Snackbar -->
-    <v-snackbar v-model="snackbar.show" :color="snackbar.color" location="top right" timeout="3000">
+    <v-snackbar v-model="snackbar.show" :color="snackbar.color" location="top right" timeout="4000">
       {{ snackbar.text }}
     </v-snackbar>
   </v-card>
@@ -431,6 +495,7 @@
 <script>
 import { mapState, mapActions } from 'pinia';
 import { useClientsStore } from '@/store/clients';
+import api from '@/services/api';
 
 export default {
   name: 'ClientListComponent',
@@ -450,6 +515,9 @@ export default {
           { title: 'Acciones', key: 'actions', align: 'end', sortable: false },
         ],
       },
+      resetDialog: false,
+      resetTarget: null,
+      resettingPassword: false,
       editDialog: false,
       isFormValid: true,
       editId: null,
@@ -507,6 +575,26 @@ export default {
         this.notify('Listado de empresas actualizado.');
       } catch (e) {
         this.notify('Error al recargar el directorio.', 'error');
+      }
+    },
+
+    openResetDialog(item) {
+      this.resetTarget = item;
+      this.resetDialog = true;
+    },
+
+    async confirmResetPassword() {
+      if (!this.resetTarget) return;
+
+      this.resettingPassword = true;
+      try {
+        const res = await api.post(`/clients/${this.resetTarget.id}/reset-password`);
+        this.notify(res.data?.message || 'Contraseña restablecida y enviada por correo.');
+        this.resetDialog = false;
+      } catch (e) {
+        this.notify(e.response?.data?.message || 'Error al restablecer la contraseña.', 'error');
+      } finally {
+        this.resettingPassword = false;
       }
     },
 
